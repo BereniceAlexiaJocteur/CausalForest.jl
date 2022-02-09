@@ -1,5 +1,91 @@
+__precompile__()
+
 module CausalForest
 
-# Write your package code here.
+
+#####Types#####
+
+struct Leaf{T}
+    majority :: T
+    values   :: Vector{T}
+end
+
+struct Node{S, T}
+    featid  :: Int
+    featval :: S
+    left    :: Union(Leaf{T}, Node{S, T})
+    right   :: Union(Leaf{T}, Node{S, T})
+end
+
+const LeafOrNode{S, T} = Union(Leaf{T}, Node{S, T})
+
+struct Forest{S, T}
+    trees :: Vector{LeafOrNode{S, T}}
+end
+
+is_leaf(l::Leaf) = true
+is_leaf(n::Node) = false
+
+zero(String) = ""
+convert(::Type{Node{S, T}}, lf::Leaf{T}) where {S, T} = Node(0, zero(S), lf, Leaf(zero(T), [zero(T)]))
+promote_rule(::Type{Node{S, T}}, ::Type{Leaf{T}}) where {S, T} = Node{S, T}
+promote_rule(::Type{Leaf{T}}, ::Type{Node{S, T}}) where {S, T} = Node{S, T}
+
+mk_rng(rng::Random.AbstractRNG) = rng
+mk_rng(seed::T) where T <: Integer = Random.MersenneTwister(seed)
+
+#####Includes#####
+
+include("util.jl")
+
+#####Methods#####
+
+length(leaf::Leaf) = 1
+length(tree::Node) = length(tree.left) + length(tree.right)
+length(ensemble::Ensemble) = length(ensemble.trees)
+
+depth(leaf::Leaf) = 0
+depth(tree::Node) = 1 + max(depth(tree.left), depth(tree.right))
+
+function print_tree(leaf::Leaf, depth=-1, indent=0; feature_names=nothing)
+    matches = findall(leaf.values .== leaf.majority)
+    ratio = string(length(matches)) * "/" * string(length(leaf.values))
+    println("$(leaf.majority) : $(ratio)")
+end
+
+function print_tree(tree::Node, depth=-1, indent=0; feature_names=nothing)
+    if depth == indent
+        println()
+        return
+    end
+    if feature_names === nothing
+        println("Feature $(tree.featid), Threshold $(tree.featval)")
+    else
+        println("Feature $(tree.featid): \"$(feature_names[tree.featid])\", Threshold $(tree.featval)")
+    end
+    print("    " ^ indent * "L-> ")
+    print_tree(tree.left, depth, indent + 1; feature_names = feature_names)
+    print("    " ^ indent * "R-> ")
+    print_tree(tree.right, depth, indent + 1; feature_names = feature_names)
+end
+
+function show(io::IO, leaf::Leaf)
+    println(io, "Decision Leaf")
+    println(io, "Majority: $(leaf.majority)")
+    print(io,   "Samples:  $(length(leaf.values))")
+end
+
+function show(io::IO, tree::Node)
+    println(io, "Decision Tree")
+    println(io, "Leaves: $(length(tree))")
+    print(io,   "Depth:  $(depth(tree))")
+end
+
+function show(io::IO, ensemble::Ensemble)
+    println(io, "Ensemble of Decision Trees")
+    println(io, "Trees:      $(length(ensemble))")
+    println(io, "Avg Leaves: $(mean([length(tree) for tree in ensemble.trees]))")
+    print(io,   "Avg Depth:  $(mean([depth(tree) for tree in ensemble.trees]))")
+end
 
 end
