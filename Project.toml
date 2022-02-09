@@ -1,0 +1,7 @@
+name = "CausalForest"
+uuid = "31bdf679-24a7-499a-9be9-b214c66174ea"
+authors = ["Bérénice-Alexia Jocteur"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
