@@ -3,5 +3,8 @@ uuid = "31bdf679-24a7-499a-9be9-b214c66174ea"
 authors = ["Bérénice-Alexia Jocteur"]
 version = "0.1.0"
 
+[deps]
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
 [compat]
 julia = "1"
