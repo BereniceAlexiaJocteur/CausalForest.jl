@@ -1,6 +1,8 @@
 name: CI
 on:
-  - push
+  push:
+    branches:
+      - main
   - pull_request
 jobs:
   test:
@@ -10,6 +12,7 @@ jobs:
       matrix:
         version:
           - '1.7'
+          - '1'
           - 'nightly'
         os:
           - ubuntu-latest

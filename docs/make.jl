@@ -1,8 +1,8 @@
 using Documenter
-using NewPackage
+using CausalForest
 
 makedocs(
-    sitename = "NewPackage.jl",
+    sitename = "CausalForest.jl",
     format = Documenter.HTML(prettyurls = false),
     pages = [
         "Introduction" => "index.md"
@@ -10,6 +10,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/bjack205/NewPackage.jl.git",
+    repo = "github.com/BereniceAlexiaJocteur/CausalForest.jl.git",
     devbranch = "main"
 )
