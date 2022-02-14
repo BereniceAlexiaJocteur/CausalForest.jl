@@ -9,7 +9,7 @@ using Test
     labels = features * weights
     model = build_forest_oob(labels, features, 2, 10, 0.7, 5)
     predictions = apply_forest_oob(model)
-    comparison = isapprox.(labels, predictions, atol=2)
+    comparison = isapprox.(labels, predictions, atol=2.5)
     @test (sum(comparison)/n) > 0.7
 
 end
