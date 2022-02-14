@@ -1,6 +1,7 @@
 using CausalForest
 using Test
+using TestSetExtensions
 
-@testset "CausalForest.jl" begin
-    # Write your tests here.
+@testset ExtendedTestSet "CausalForest.jl" begin
+    @includetests ARGS
 end
