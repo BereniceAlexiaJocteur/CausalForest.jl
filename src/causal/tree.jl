@@ -8,7 +8,7 @@ module treeregressor
     include("../util.jl")
 
     import Random
-    import PoissonRandom # TODO to generate random mtry
+    import PoissonRandom # to generate random mtry
     export fit
 
     mutable struct NodeMeta{S}
