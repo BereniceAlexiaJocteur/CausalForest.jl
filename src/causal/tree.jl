@@ -4,11 +4,12 @@
 
 # written by Poom Chiarawongse <eight1911@gmail.com>
 
-module treeregressor
+module treercausation
     include("../util.jl")
 
     import Random
     import PoissonRandom # to generate random mtry
+    import StatsBase # to sample features
     export fit
 
     mutable struct NodeMeta{S}
@@ -19,8 +20,9 @@ module treeregressor
         threshold   :: S            # threshold value
         is_leaf     :: Bool
         depth       :: Int
-        region      :: UnitRange{Int} # a slice of the samples used to decide the split of the node
-        features    :: Vector{Int}    # a list of features not known to be constant
+        region      :: UnitRange{Int} # a slice of the samples used to decide the split of the node # TODO ca doit etre les indices d'origine et pas les indices après centrage
+        features    :: Vector{Int}    # a list of features
+        # TODO ajouter n_features pour pas recalculer à chaque fois ??
         split_at    :: Int            # index of samples
         function NodeMeta{S}(
                 features :: Vector{Int},
@@ -98,7 +100,7 @@ module treeregressor
         threshold_lo = X[1]
         threshold_hi = X[1]
 
-        indf = 1
+        # TODO useless now indf = 1
         # the number of new constants found during this split
         # TODO on regarde plus ca     n_constant = 0
         # true if every feature is constant
@@ -114,12 +116,15 @@ module treeregressor
         # non constant features instead of going through every feature randomly.
         #TODO on ne regarde plus ca non_constants_used = util.hypergeometric(n_features, total_features-n_features, max_features, rng)
         #@inbounds while (unsplittable || indf <= non_constants_used) && indf <= n_features
-        @inbounds while (unsplittable || indf <= non_constants_used) && indf <= n_features # TODO modifier cond du while
-            feature = let   # TODO verifier ce bloc poisson pour mtry ???? ou c'est au dessus ??
-                indr = rand(rng, indf:n_features)
-                features[indf], features[indr] = features[indr], features[indf]
-                features[indf]
-            end
+        #@inbounds while (unsplittable || indf <= non_constants_used) && indf <= n_features # TODO modifier cond du while
+            #feature = let   # TODO verifier ce bloc poisson pour mtry ???? ou c'est au dessus ??
+                #indr = rand(rng, indf:n_features)
+                #features[indf], features[indr] = features[indr], features[indf]
+                #features[indf]
+            #end
+        mtry = min(max(PoissonRandom.pois_rand(m_pois), 1), total_features)
+        random_features = StatsBase.sample(1:total_features, n=mtry, replace=false)
+        for feature in random_features
 
             r_w_sum = t_w_sum
             l_w_sum = zero(Int)
@@ -145,7 +150,7 @@ module treeregressor
             # the least upper bound and the greatest lower bound
             # of the left and right nodes respectively
             hi = 0
-            last_f = Xf[1]
+            last_f = Xf[1] # TODO encore utile ??
             # TODO osef now is_constant = true
             while hi < n_samples
                 lo = hi + 1
@@ -156,10 +161,11 @@ module treeregressor
 
                 # TODO osef now ? (lo != 1) && (is_constant = false)
                 # honor min_samples_leaf
-                if lo-1 >= min_samples_leaf && n_samples - (lo-1) >= min_samples_leaf
+                # TODO ajouter condition nombre de trt
+                if lo-1 >= min_samples_leaf && n_samples - (lo-1) >= min_samples_leaf # TODO ajouter condition sur nb treat
                     unsplittable = false
                     difference = (l_w_ssq/nl - (l_w_sum/nl)^2)/(l_wy_sum/nl - (l_w_sum/nl))-(r_w_ssq/nr - (r_w_sum/nr)^2)/(r_wy_sum/nr - (r_w_sum/nr))
-                    purity = (nl*nr)/(n_samples)*difference*difference
+                    purity = (nl*nr)/(n_samples*n_samples)*difference*difference
                     if purity > best_purity && !isapprox(purity, best_purity)
                         # will take average at the end, if possible
                         threshold_lo = last_f
@@ -204,7 +210,7 @@ module treeregressor
                 #features[indf], features[n_constant] = features[n_constant], features[indf]
             #end
 
-            indf += 1
+            # TODO useless now indf += 1
         end
 
         # no splits honor min_samples_leaf
@@ -230,7 +236,7 @@ module treeregressor
             # (so we partition at threshold_lo instead of node.threshold)
             node.split_at = util.partition!(indX, Xf, threshold_lo, region)
             node.feature = best_feature
-            node.features = features[(n_constant+1):n_features]
+            # TODO plus nécessaire ? node.features = features[(n_constant+1):n_features]
         end
 
     end
@@ -248,6 +254,7 @@ module treeregressor
             X                     :: AbstractMatrix{S},
             Y                     :: AbstractVector{Float64},
             W                     :: AbstractVector{Int},
+            indX                  :: AbstractVector{Int},
             m_pois                :: Int,
             max_depth             :: Int,
             min_samples_leaf      :: Int,
@@ -261,8 +268,9 @@ module treeregressor
         Xf  = Array{S}(undef, n_samples)
         Wf  = Array{Int}(undef, n_samples)
 
-        indX = collect(1:n_samples)
-        root = NodeMeta{S}(collect(1:n_features), 1:n_samples, 0)
+        #indX = collect(1:n_samples) # TODO modifier car on veut les indices avant centrages -> mettre indX en parametre de la function
+        # TODO on modif region root = NodeMeta{S}(collect(1:n_features), 1:n_samples, 0)
+        root = NodeMeta{S}(collect(1:n_features), indX, 0)
         stack = NodeMeta{S}[root]
 
         @inbounds while length(stack) > 0
@@ -284,13 +292,14 @@ module treeregressor
                 push!(stack, node.l)
             end
         end
-        return (root, indX)
+        return root  #(root, indX)
     end
 
     function fit(;
             X                     :: AbstractMatrix{S},
             Y                     :: AbstractVector{Float64},
-            W                     :: Union{Nothing, AbstractVector{U}},
+            W                     :: AbstractVector{Int},
+            indX                  :: AbstractVector{Int},
             m_pois                :: Int,
             max_depth             :: Int,
             min_samples_leaf      :: Int,
@@ -300,20 +309,22 @@ module treeregressor
 
         n_samples, n_features = size(X)
 
-        util.check_input(
+        util.check_input( # TODO modif cette fonction et son nom
             X,
             Y,
             W,
+            indX,
             m_pois,
             max_depth,
             min_samples_leaf,
             min_samples_split,
             min_purity_increase)
 
-        root, indX = _fit(
+        root = _fit(
             X,
             Y,
             W,
+            indX,
             m_pois,
             max_depth,
             min_samples_leaf,
@@ -321,7 +332,7 @@ module treeregressor
             min_purity_increase,
             rng)
 
-        return Tree{S}(root, indX)
+        return Tree{S}(root, indX) # TODO on retourne plus indX et faut modifier la struct tree
 
     end
 end
