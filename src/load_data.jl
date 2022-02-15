@@ -1,5 +1,5 @@
 function load_data(name)
-    datasets = ["iris", "adult", "digits"]
+    datasets = ["iris", "adult", "digits", "causal"]
     data_path = joinpath(dirname(pathof(DecisionTree)), "..", "test/data/")
 
     if name == "digits"
@@ -26,6 +26,16 @@ function load_data(name)
         X = adult[:, 1:14];
         Y = adult[:, 15];
         return X, Y
+    end
+
+    data_path = joinpath(dirname(pathof(CausalForest)), "..", "data/")
+
+    if name == "causal"
+        data = DelimitedFiles.readdlm(joinpath(data_path, "synthetic_causal.csv"), ';', header=true)
+        X = data[:, 1:10]
+        T = data[:, 11]
+        Y = data[:, 12]
+        return X, T, Y
     end
 
     if !(name in datasets)
