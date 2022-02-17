@@ -7,6 +7,7 @@ using DecisionTree
 using DelimitedFiles
 using Random
 using Statistics
+import StatsBase
 
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
     build_tree

@@ -87,10 +87,160 @@ function build_tree(
         min_purity_increase = Float64(min_purity_increase),
         rng                 = rng)
 
-    #return (t, indX)
     if honest
         return fill_tree(t, indspred, indX, features)
     else
         return _convertNH(t, indX)
     end
+end
+
+
+# TODO
+
+function build_forest(
+    bootstrap          :: Bool,
+    honest             :: Bool,
+    indsbuild          :: AbstractVector{Int},
+    indspred           :: Union{Nothing, AbstractVector{Int}},
+    labels             :: AbstractVector{T},
+    treatment          :: AbstractVector{Int},
+    features           :: AbstractMatrix{S},
+    m_pois              = -1,
+    n_trees             = 10,
+    partial_sampling    = 0.7,
+    honest_proportion   = 0.5,
+    max_depth           = -1,
+    min_samples_leaf    = 5,
+    min_samples_split   = 2,
+    min_purity_increase = 0.0;
+    rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
+
+    if n_trees < 1
+        throw("the number of trees must be >= 1")
+    end
+    if !(0.0 < partial_sampling <= 1.0)&&!bootstrap
+        throw("partial_sampling must be in the range (0,1]")
+    end
+
+    if bootstrap
+        n_samples = length(labels)
+    else
+        n_samples = floor(Int, partial_sampling * length(labels))
+    end
+
+    forest = Vector{TreeOOB{S, T}}(undef, n_trees) # TODO modif la struc tree ou nodeor leaf ??
+
+    if rng isa Random.AbstractRNG
+        if bootstrap
+            Threads.@threads for i in 1:n_trees
+                #inds = rand(rng, 1:t_samples, n_samples)  # TODO utiliser basestats plutot
+                if honest
+                    inds = 1:n_samples
+                    inds1, inds2 = split(inds, honest_proportion)
+                    indsbuild = StatsBase.sample(rng, inds1, length(inds1), replace=true)
+                    indspred = StatsBase.sample(rng, inds2, length(inds2), replace=true)
+                else
+                    indsbuild = StatsBase.sample(rng, 1:n_samples, n_samples, replace=true)
+                    indspred = nothing
+                end
+                forest[i] = build_tree(
+                    honest,
+                    indsbuild,
+                    indspred,
+                    labels,
+                    treatment,
+                    features,
+                    m_pois,
+                    max_depth,
+                    min_samples_leaf,
+                    min_samples_split,
+                    min_purity_increase,
+                    rng = rng)
+            end
+        else
+            Threads.@threads for i in 1:n_trees
+                #inds = rand(rng, 1:t_samples, n_samples)  # TODO utiliser basestats plutot
+                if honest
+                    inds = StatsBase.sample(rng, 1:n_samples, n_samples, replace=false)
+                    indsbuild, indspred = split(inds, honest_proportion)
+                else
+                    indsbuild = StatsBase.sample(rng, 1:n_samples, n_samples, replace=false)
+                    indspred = nothing
+                end
+                forest[i] = build_tree(
+                    honest,
+                    indsbuild,
+                    indspred,
+                    labels,
+                    treatment,
+                    features,
+                    m_pois,
+                    max_depth,
+                    min_samples_leaf,
+                    min_samples_split,
+                    min_purity_increase,
+                    rng = rng)
+            end
+        end
+    elseif rng isa Integer # each thread gets its own seeded rng
+        if bootstrap
+            Threads.@threads for i in 1:n_trees
+                Random.seed!(rng + i)
+                #inds = rand(1:t_samples, n_samples) #TODO
+                if honest
+                    inds = 1:n_samples
+                    inds1, inds2 = split(inds, honest_proportion)
+                    indsbuild = StatsBase.sample(rng, inds1, length(inds1), replace=true)
+                    indspred = StatsBase.sample(rng, inds2, length(inds2), replace=true)
+                else
+                    indsbuild = StatsBase.sample(rng, 1:n_samples, n_samples, replace=true)
+                    indspred = nothing
+                end
+                forest[i] = build_tree(
+                    honest,
+                    indsbuild,
+                    indspred,
+                    labels,
+                    treatment,
+                    features,
+                    m_pois,
+                    max_depth,
+                    min_samples_leaf,
+                    min_samples_split,
+                    min_purity_increase)
+            end
+        else
+            Threads.@threads for i in 1:n_trees
+                Random.seed!(rng + i)
+                #inds = rand(1:t_samples, n_samples) #TODO
+                if honest
+                    inds = StatsBase.sample(rng, 1:n_samples, n_samples, replace=false)
+                    indsbuild, indspred = split(inds, honest_proportion)
+                else
+                    indsbuild = StatsBase.sample(rng, 1:n_samples, n_samples, replace=false)
+                    indspred = nothing
+                end
+                forest[i] = build_tree(
+                    honest,
+                    indsbuild,
+                    indspred,
+                    labels,
+                    treatment,
+                    features,
+                    m_pois,
+                    max_depth,
+                    min_samples_leaf,
+                    min_samples_split,
+                    min_purity_increase)
+            end
+        end
+    else
+        throw("rng must of be type Integer or Random.AbstractRNG")
+    end
+
+    return forest # TODO
+end
+
+function apply_forest()
+
 end

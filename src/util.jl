@@ -2,7 +2,19 @@
 
 module util
 
-    export gini, entropy, zero_one, q_bi_sort!, hypergeometric, check_input
+    export gini, entropy, zero_one, q_bi_sort!, hypergeometric, check_input, split
+
+    function split(inds::Vector{Int}, percentage::Float64)
+
+        if !(0.0 < percentage < 1.0)
+            throw("percentage must be in the range (0,1)")
+        end
+
+        N = length(inds)
+        splitindex = round(Int, percentage*N)
+        shuffle!(a)
+        return sub(a, splitindex+1:N), sub(a, 1:splitindex)
+    end
 
     function assign(Y :: AbstractVector{T}, list :: AbstractVector{T}) where T
         dict = Dict{T, Int}()
