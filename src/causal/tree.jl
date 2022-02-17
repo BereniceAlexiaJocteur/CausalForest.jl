@@ -4,7 +4,7 @@
 
 # written by Poom Chiarawongse <eight1911@gmail.com>
 
-module treercausation
+module treecausation
     include("../util.jl")
 
     import Random
@@ -15,7 +15,7 @@ module treercausation
     mutable struct NodeMeta{S}
         l           :: NodeMeta{S}  # right child
         r           :: NodeMeta{S}  # left child
-        label       :: Float64      # most likely label
+        #label       :: Float64      # most likely label
         feature     :: Int          # feature used for splitting
         threshold   :: S            # threshold value
         is_leaf     :: Bool
@@ -65,11 +65,14 @@ module treercausation
 
         region = node.region
         n_samples = length(region)
+        # TODO suppr r_start = region.start - 1
         r_start = region.start - 1
 
         @inbounds @simd for i in 1:n_samples
             Yf[i] = Y[indX[i + r_start]]
             Wf[i] = W[indX[i + r_start]]
+            #Yf[i] = Y[indX[i]]
+            #Wf[i] = W[indX[i]]
         end
 
         t_w_sum = zero(Int) # sum of W in node
@@ -95,7 +98,7 @@ module treercausation
 
         features = node.features
         n_features = length(features)
-        best_purity = typemin(U)
+        best_purity = typemin(Float64)
         best_feature = -1
         threshold_lo = X[1]
         threshold_hi = X[1]
@@ -123,7 +126,7 @@ module treercausation
                 #features[indf]
             #end
         mtry = min(max(PoissonRandom.pois_rand(m_pois), 1), total_features)
-        random_features = StatsBase.sample(1:total_features, n=mtry, replace=false)
+        random_features = StatsBase.sample(1:total_features, mtry, replace=false)
         for feature in random_features
 
             r_w_sum = t_w_sum
@@ -135,17 +138,23 @@ module treercausation
             r_wy_sum = t_wy_sum
             l_wy_sum = zero(Float64)
 
-            @simd for i in 1:n_samples
+            #@simd for i in 1:n_samples
+            for i in 1:n_samples
                 Xf[i] = X[indX[i + r_start], feature]
+                #Xf[i] = X[indX[i], feature]
             end
 
             # sort Yf and indX by Xf
             util.q_bi_sort!(Xf, indX, 1, n_samples, r_start)
-            @simd for i in 1:n_samples
+            #util.q_bi_sort!(Xf, indX, 1, n_samples, 0) # TODO verif
+            # @simd for i in 1:n_samples
+            for i in 1:n_samples
                 Yf[i] = Y[indX[i + r_start]]
                 Wf[i] = W[indX[i + r_start]]
+                #Yf[i] = Y[indX[i]]
+                #Wf[i] = W[indX[i]]
             end
-            nl, nr = zero(U), n_samples
+            nl, nr = 0, n_samples
             # lo and hi are the indices of
             # the least upper bound and the greatest lower bound
             # of the left and right nodes respectively
@@ -186,7 +195,8 @@ module treercausation
                         r_wy_sum -= Wf[i]*Yf[i]
                     end
                 else
-                    nr = r_w_sum = r_y_sum = r_w_ssq = r_wy_sum = zero(U)
+                    nr = r_w_sum = r_w_ssq = 0
+                    r_y_sum = r_wy_sum = zero(Float64)
                     @simd for i in (hi+1):n_samples
                         nr   += 1
                         r_w_sum += Wf[i]
@@ -222,7 +232,8 @@ module treercausation
         else
             # new_purity - old_purity < stop.min_purity_increase
             @simd for i in 1:n_samples
-                Xf[i] = X[indX[i + r_start], best_feature]
+                Xf[i] = X[indX[i + r_start], best_feature] # TODO
+                #Xf[i] = X[indX[i], best_feature]
             end
 
             try
@@ -234,9 +245,10 @@ module treercausation
             # the threshold and ones that are less than or equal to the threshold
             #                                 ---------------------
             # (so we partition at threshold_lo instead of node.threshold)
+            #node.split_at = util.partitionv2!(indX, Xf, threshold_lo, region) # TODO corriger cette fonction -> elle est peut etre plus necessaire ?
             node.split_at = util.partition!(indX, Xf, threshold_lo, region)
             node.feature = best_feature
-            # TODO plus nécessaire ? node.features = features[(n_constant+1):n_features]
+            node.features = features
         end
 
     end
@@ -269,8 +281,8 @@ module treercausation
         Wf  = Array{Int}(undef, n_samples)
 
         #indX = collect(1:n_samples) # TODO modifier car on veut les indices avant centrages -> mettre indX en parametre de la function
-        # TODO on modif region root = NodeMeta{S}(collect(1:n_features), 1:n_samples, 0)
-        root = NodeMeta{S}(collect(1:n_features), indX, 0)
+        root = NodeMeta{S}(collect(1:n_features), 1:n_samples, 0) # TODO on modif region
+        #root = NodeMeta{S}(collect(1:n_features), indX, 0)
         stack = NodeMeta{S}[root]
 
         @inbounds while length(stack) > 0
@@ -292,7 +304,7 @@ module treercausation
                 push!(stack, node.l)
             end
         end
-        return root  #(root, indX)
+        return (root, indX)
     end
 
     function fit(;
@@ -305,22 +317,22 @@ module treercausation
             min_samples_leaf      :: Int,
             min_samples_split     :: Int,
             min_purity_increase   :: Float64,
-            rng=Random.GLOBAL_RNG :: Random.AbstractRNG) where {S, U}
+            rng=Random.GLOBAL_RNG :: Random.AbstractRNG) where {S}
 
         n_samples, n_features = size(X)
 
-        util.check_input( # TODO modif cette fonction et son nom
-            X,
-            Y,
-            W,
-            indX,
-            m_pois,
-            max_depth,
-            min_samples_leaf,
-            min_samples_split,
-            min_purity_increase)
+        #util.check_input( # TODO modif cette fonction et son nom
+        #    X,
+        #    Y,
+        #    W,
+        #    indX,
+        #    m_pois,
+        #    max_depth,
+        #    min_samples_leaf,
+        #    min_samples_split,
+        #    min_purity_increase)
 
-        root = _fit(
+        root, indX = _fit(
             X,
             Y,
             W,
@@ -332,7 +344,8 @@ module treercausation
             min_purity_increase,
             rng)
 
-        return Tree{S}(root, indX) # TODO on retourne plus indX et faut modifier la struct tree
+        #return Tree{S}(root, indX) # TODO on retourne plus indX et faut modifier la struct tree
+        return (root, indX)
 
     end
 end

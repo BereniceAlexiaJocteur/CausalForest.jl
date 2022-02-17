@@ -31,11 +31,12 @@ function load_data(name)
     data_path = joinpath(dirname(pathof(CausalForest)), "..", "data/")
 
     if name == "causal"
-        data = DelimitedFiles.readdlm(joinpath(data_path, "synthetic_causal.csv"), ';', header=true)
-        X = data[:, 1:10]
-        T = data[:, 11]
-        Y = data[:, 12]
-        return X, T, Y
+        data = DelimitedFiles.readdlm(joinpath(data_path, "synthetic_causal.csv"), ';', skipstart=1)
+        indices = Int.(data[:, 1])
+        X = data[:, 2:11]
+        T = Int.(data[:, 12])
+        Y = data[:, 13]
+        return indices, X, T, Y
     end
 
     if !(name in datasets)

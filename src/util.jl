@@ -87,6 +87,22 @@ module util
         return j
     end
 
+    @inline function partitionv2!(v, w, pivot, region)
+        i, j = 1, length(region)
+        r_start = 0
+        @inbounds while true
+            while w[i] <= pivot; i += 1; end;
+            while w[j]  > pivot; j -= 1; end;
+            i >= j && break
+            ri = r_start + i
+            rj = r_start + j
+            v[ri], v[rj] = v[rj], v[ri]
+            w[i], w[j] = w[j], w[i]
+            i += 1; j -= 1
+        end
+        return j
+    end
+
     # adapted from the Julia Base.Sort Library
     function insert_sort!(v, w, lo, hi, offset)
         @inbounds for i = lo+1:hi
