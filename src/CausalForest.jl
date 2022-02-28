@@ -10,7 +10,7 @@ using Statistics
 import StatsBase
 
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
-    build_tree
+    build_tree, build_forest
 
 ########## Types ##########
 
@@ -55,7 +55,7 @@ struct TreeCausalNH{S} # honest causal tree
 end
 
 struct EnsembleCausal{S}
-    trees     :: Union{Vector{LeafOrNodeCausalH{S}}, Vector{LeafOrNodeCausalNH{S}}}
+    trees     :: Union{Vector{TreeCausalH{S}}, Vector{TreeCausalNH{S}}}
     bootstrap :: Bool
     honest    :: Bool
     X         :: AbstractMatrix{S}

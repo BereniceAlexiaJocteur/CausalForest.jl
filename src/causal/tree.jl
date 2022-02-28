@@ -39,8 +39,7 @@ module treecausation
 
     struct Tree{S}
         root   :: NodeMeta{S}
-        labels :: Vector{Int}
-        # TODO à modifier surement
+        inds   :: Vector{Int}
     end
 
     # find an optimal split that satisfy the given constraints
@@ -86,11 +85,13 @@ module treecausation
             t_wy_sum += Wf[i]*Yf[i]
         end
 
+        old_purity = 0.0
+
         # node.label =  tsum / wsum TODO not necessary on ne veut pas résumer info dans noeud (moyenne des Y ou majorité...)
         if (min_samples_leaf * 2 >  n_samples
          || min_samples_split    >  n_samples
          || max_depth            <= node.depth
-         # TODO|| tsum * node.label    > -1e-7 * wsum + tssq # equivalent to old_purity > -1e-7    + considere critère traitement
+         || old_purity > -1e-7 # equivalent to old_purity > -1e-7    + TODO considere critère traitement
          )
             node.is_leaf = true
             return
@@ -225,12 +226,13 @@ module treecausation
 
         # no splits honor min_samples_leaf
         @inbounds if (unsplittable
-                # TODO on s'en occupe plus ?? || best_purity - tsum * node.label < min_purity_increase * wsum)
+                || best_purity - old_purity < min_purity_increase
                 )
             node.is_leaf = true
             return
         else
             # new_purity - old_purity < stop.min_purity_increase
+            old_purity = best_purity
             @simd for i in 1:n_samples
                 Xf[i] = X[indX[i + r_start], best_feature] # TODO
                 #Xf[i] = X[indX[i], best_feature]
@@ -281,7 +283,7 @@ module treecausation
         Wf  = Array{Int}(undef, n_samples)
 
         #indX = collect(1:n_samples) # TODO modifier car on veut les indices avant centrages -> mettre indX en parametre de la function
-        root = NodeMeta{S}(collect(1:n_features), 1:n_samples, 0) # TODO on modif region
+        root = NodeMeta{S}(collect(1:n_features), 1:length(indX), 0) # TODO modifier 1:nsamples faut prendre la taille de indsbuils (indX ici)
         #root = NodeMeta{S}(collect(1:n_features), indX, 0)
         stack = NodeMeta{S}[root]
 
@@ -344,8 +346,7 @@ module treecausation
             min_purity_increase,
             rng)
 
-        #return Tree{S}(root, indX) # TODO on retourne plus indX et faut modifier la struct tree
-        return (root, indX)
+        return Tree{S}(root, indX)
 
     end
 end
