@@ -10,7 +10,7 @@ using Statistics
 import StatsBase
 
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
-    build_tree, build_forest
+    build_tree, build_forest, apply_forest
 
 ########## Types ##########
 
@@ -68,6 +68,9 @@ is_leaf(l::LeafCausalH) = true
 is_leaf(l::LeafCausalNH) = true
 is_leaf(n::NodeCausalH) = false
 is_leaf(n::NodeCausalNH) = false
+
+
+length(forest::EnsembleCausal) = length(forest.trees)
 
 #TODO
 #convert(::Type{Node{S, T}}, lf::Leaf{T}) where {S, T} = Node(0, zero(S), lf, Leaf(zero(T), [zero(T)]))

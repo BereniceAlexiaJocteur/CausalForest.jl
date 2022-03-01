@@ -15,6 +15,8 @@ module treecausation
     mutable struct NodeMeta{S}
         l           :: NodeMeta{S}  # right child
         r           :: NodeMeta{S}  # left child
+        old_purity  :: Float64
+        new_purity  :: Float64
         #label       :: Float64      # most likely label
         feature     :: Int          # feature used for splitting
         threshold   :: S            # threshold value
@@ -27,9 +29,11 @@ module treecausation
         function NodeMeta{S}(
                 features :: Vector{Int},
                 region   :: UnitRange{Int},
-                depth    :: Int) where S
+                depth    :: Int,
+                pur      :: Float64) where S
             node = new{S}()
             node.depth = depth
+            node.old_purity = pur
             node.region = region
             node.features = features
             node.is_leaf = false
@@ -85,13 +89,12 @@ module treecausation
             t_wy_sum += Wf[i]*Yf[i]
         end
 
-        old_purity = 0.0
 
         # node.label =  tsum / wsum TODO not necessary on ne veut pas résumer info dans noeud (moyenne des Y ou majorité...)
         if (min_samples_leaf * 2 >  n_samples
          || min_samples_split    >  n_samples
          || max_depth            <= node.depth
-         || old_purity > -1e-7 # equivalent to old_purity > -1e-7    + TODO considere critère traitement
+         || node.old_purity < 1e-10 # TODO verif borne  + TODO considere critère traitement
          )
             node.is_leaf = true
             return
@@ -225,14 +228,15 @@ module treecausation
         end
 
         # no splits honor min_samples_leaf
+        node.new_purity = best_purity
         @inbounds if (unsplittable
-                || best_purity - old_purity < min_purity_increase
+                #|| best_purity - old_purity < min_purity_increase TODO verifier si purity toujours monotone important
                 )
             node.is_leaf = true
             return
         else
             # new_purity - old_purity < stop.min_purity_increase
-            old_purity = best_purity
+
             @simd for i in 1:n_samples
                 Xf[i] = X[indX[i + r_start], best_feature] # TODO
                 #Xf[i] = X[indX[i], best_feature]
@@ -260,8 +264,8 @@ module treecausation
         region = node.region
         features = node.features
         # no need to copy because we will copy at the end
-        node.l = NodeMeta{S}(features, region[    1:ind], node.depth + 1)
-        node.r = NodeMeta{S}(features, region[ind+1:end], node.depth + 1)
+        node.l = NodeMeta{S}(features, region[    1:ind], node.depth + 1, node.new_purity)
+        node.r = NodeMeta{S}(features, region[ind+1:end], node.depth + 1, node.new_purity)
     end
 
     function _fit(
@@ -283,7 +287,7 @@ module treecausation
         Wf  = Array{Int}(undef, n_samples)
 
         #indX = collect(1:n_samples) # TODO modifier car on veut les indices avant centrages -> mettre indX en parametre de la function
-        root = NodeMeta{S}(collect(1:n_features), 1:length(indX), 0) # TODO modifier 1:nsamples faut prendre la taille de indsbuils (indX ici)
+        root = NodeMeta{S}(collect(1:n_features), 1:length(indX), 0, Inf) # TODO modifier valeur initiale de old pur
         #root = NodeMeta{S}(collect(1:n_features), indX, 0)
         stack = NodeMeta{S}[root]
 

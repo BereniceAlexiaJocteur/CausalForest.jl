@@ -260,8 +260,82 @@ function build_forest(
     return EnsembleCausal{S}(forest, bootstrap, honest, features, labels, treatment)
 end
 
-# TODO
+apply_treeH(leaf :: LeafCausalH, x :: AbstractVector{S}) where {S} = leaf.inds_pred
+apply_treeNH(leaf :: LeafCausalNH, x :: AbstractVector{S}) where {S} = leaf.inds_build
 
-function apply_forest()
+function apply_treeH(tree :: NodeCausalH{S}, x :: AbstractVector{S}) where {S}
+    if tree.featid == 0
+        return apply_treeH(tree.left, x)
+    elseif x[tree.featid] < tree.featval
+        return apply_treeH(tree.left, x)
+    else
+        return apply_treeH(tree.right, x)
+    end
+end
 
+function apply_treeNH(tree :: NodeCausalNH{S}, x :: AbstractVector{S}) where {S}
+    if tree.featid == 0
+        return apply_treeNH(tree.left, x)
+    elseif x[tree.featid] < tree.featval
+        return apply_treeNH(tree.left, x)
+    else
+        return apply_treeNH(tree.right, x)
+    end
+end
+
+function neighbours(
+    forest :: EnsembleCausal{S},
+    b      :: Int,
+    x      :: AbstractVector{S}
+    ) where {S}
+    if forest.honest
+        return apply_treeH(forest.trees[b].tree, x)
+    else
+        return apply_treeNH(forest.trees[b].tree, x)
+    end
+end
+
+function apply_forest(
+    forest :: EnsembleCausal{S},
+    x      :: AbstractVector{S}
+    ) where {S}
+
+    n_samples = length(forest.Y)
+    alpha = zeros(n_samples)
+    n_trees = length(forest)
+    for b in 1:n_trees
+        N = neighbours(forest, b, x)
+        l = length(N)
+        for e in N
+            alpha[e] += 1/l
+        end
+    end
+    alpha = alpha/n_trees
+    T_alpha = 0
+    Y_alpha = 0
+    for i in 1:n_samples
+        T_alpha += alpha[i]*forest.T[i]
+        Y_alpha += alpha[i]*forest.Y[i]
+    end
+    num = 0
+    denom = 0
+    for i in 1:n_samples
+        diffT = forest.T[i]-T_alpha
+        num += alpha[i]*diffT*(forest.Y[i]-Y_alpha)
+        denom += alpha[i]*diffT^2
+    end
+    return num/denom
+end
+
+function apply_forest(
+    forest :: EnsembleCausal{S},
+    x      :: AbstractMatrix{S}
+    ) where {S}
+
+    N = size(x, 1)
+    predictions = Array{Float64}(undef, N)
+    for i in 1:N
+        predictions[i] = apply_forest(forest, x[i, :])
+    end
+    return predictions
 end
