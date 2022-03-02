@@ -11,21 +11,21 @@ using Test
     cf1 = build_forest(false, false, Y, T, X, -1, 100)
     pred1 = apply_forest(cf1, Xtest)
     comparison1 = isapprox.(true_effect, pred1, atol=0.3)
-    @test (sum(comparison1)/1000) > 0.75
+    @test (sum(comparison1)/1000) > 0.7
 
     cf2 = build_forest(false, true, Y, T, X, -1, 100)
     pred2 = apply_forest(cf2, Xtest)
     comparison2 = isapprox.(true_effect, pred2, atol=0.3)
-    @test (sum(comparison2)/1000) > 0.75
+    @test (sum(comparison2)/1000) > 0.7
 
     cf3 = build_forest(true, false, Y, T, X, -1, 100)
     pred3 = apply_forest(cf3, Xtest)
     comparison3 = isapprox.(true_effect, pred3, atol=0.3)
-    @test (sum(comparison3)/1000) > 0.75
+    @test (sum(comparison3)/1000) > 0.7
 
     cf4 = build_forest(true, true, Y, T, X, -1, 100)
     pred4 = apply_forest(cf4, Xtest)
     comparison4 = isapprox.(true_effect, pred4, atol=0.3)
-    @test (sum(comparison4)/1000) > 0.75
+    @test (sum(comparison4)/1000) > 0.7
 
 end
