@@ -6,7 +6,7 @@ using Test
     features, labels = load_data("iris")
     features = float.(features)
     labels   = string.(labels)
-    model = build_forest_oob(labels, features, 2, 10, 0.5, 6)
+    model = build_forest_oob(labels, features, -1, 100)
     predictions = apply_forest_oob(model)
     comparison = predictions .== labels
     len = length(labels)

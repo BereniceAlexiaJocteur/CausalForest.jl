@@ -230,6 +230,7 @@ module treecausation
         # no splits honor min_samples_leaf
         node.new_purity = best_purity
         @inbounds if (unsplittable
+                || best_feature == -1 # TODO on met ca au cas où best pur = infini
                 #|| best_purity - old_purity < min_purity_increase TODO verifier si purity toujours monotone important
                 )
             node.is_leaf = true
