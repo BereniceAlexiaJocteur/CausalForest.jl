@@ -143,16 +143,12 @@ function build_forest(
     if rng isa Random.AbstractRNG
         if bootstrap
             Threads.@threads for i in 1:n_trees
-                #inds = rand(rng, 1:t_samples, n_samples)  # TODO utiliser basestats plutot
                 if honest
                     inds = collect(1:n_samples)
                     inds1, inds2 = split_inds(inds, honest_proportion)
-                    #indsbuild = StatsBase.sample(rng, inds1, length(inds1); replace=true)
                     indsbuild = rand(rng, inds1, length(inds1))
-                    #indspred = StatsBase.sample(rng, inds2, length(inds2); replace=true)
                     indspred = rand(rng, inds2, length(inds2))
                 else
-                    #indsbuild = StatsBase.sample(rng, 1:n_samples, n_samples; replace=true)
                     indsbuild = rand(rng, 1:n_samples, n_samples)
                     indspred = nothing
                 end
@@ -171,7 +167,6 @@ function build_forest(
             end
         else
             Threads.@threads for i in 1:n_trees
-                #inds = rand(rng, 1:t_samples, n_samples)  # TODO utiliser basestats plutot
                 if honest
                     inds = StatsBase.sample(rng, 1:n_samples, n_samples; replace=false)
                     indsbuild, indspred = split_inds(inds, honest_proportion)
@@ -197,17 +192,13 @@ function build_forest(
         if bootstrap
             Threads.@threads for i in 1:n_trees
                 Random.seed!(rng + i)
-                #inds = rand(1:t_samples, n_samples) #TODO
                 if honest
                     inds = collect(1:n_samples)
                     inds1, inds2 = split_inds(inds, honest_proportion)
-                    #indsbuild = StatsBase.sample(rng, inds1, length(inds1); replace=true)
-                    indsbuild = rand(rng, inds1, length(inds1))
-                    #indspred = StatsBase.sample(rng, inds2, length(inds2); replace=true)
-                    indspred = rand(rng, inds2, length(inds2))
+                    indsbuild = rand(inds1, length(inds1))
+                    indspred = rand(inds2, length(inds2))
                 else
-                    #indsbuild = StatsBase.sample(rng, 1:n_samples, n_samples; replace=true)
-                    indsbuild = rand(rng, 1:n_samples, n_samples)
+                    indsbuild = rand(1:n_samples, n_samples)
                     indspred = nothing
                 end
                 forest[i] = build_tree(
@@ -225,12 +216,11 @@ function build_forest(
         else
             Threads.@threads for i in 1:n_trees
                 Random.seed!(rng + i)
-                #inds = rand(1:t_samples, n_samples) #TODO
                 if honest
-                    inds = StatsBase.sample(rng, 1:n_samples, n_samples; replace=false)
+                    inds = StatsBase.sample(1:n_samples, n_samples; replace=false)
                     indsbuild, indspred = split_inds(inds, honest_proportion)
                 else
-                    indsbuild = StatsBase.sample(rng, 1:n_samples, n_samples; replace=false)
+                    indsbuild = StatsBase.sample(1:n_samples, n_samples; replace=false)
                     indspred = nothing
                 end
                 forest[i] = build_tree(
