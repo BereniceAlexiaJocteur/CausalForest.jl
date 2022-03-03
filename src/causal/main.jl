@@ -73,8 +73,7 @@ function build_tree(
         m_pois              = -1,
         max_depth           = -1,
         min_samples_leaf    = 5,
-        min_samples_split   = 2,
-        min_purity_increase = 0.0;
+        min_samples_split   = 2;
         rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
 
     if max_depth == -1
@@ -97,7 +96,6 @@ function build_tree(
         max_depth           = Int(max_depth),
         min_samples_leaf    = Int(min_samples_leaf),
         min_samples_split   = Int(min_samples_split),
-        min_purity_increase = Float64(min_purity_increase),
         rng                 = rng)
 
     if honest
@@ -120,8 +118,7 @@ function build_forest(
     honest_proportion   = 0.5,
     max_depth           = -1,
     min_samples_leaf    = 5,
-    min_samples_split   = 2,
-    min_purity_increase = 0;
+    min_samples_split   = 2;
     rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
 
     if n_trees < 1
@@ -170,7 +167,6 @@ function build_forest(
                     max_depth,
                     min_samples_leaf,
                     min_samples_split,
-                    min_purity_increase,
                     rng = rng)
             end
         else
@@ -194,7 +190,6 @@ function build_forest(
                     max_depth,
                     min_samples_leaf,
                     min_samples_split,
-                    min_purity_increase,
                     rng = rng)
             end
         end
@@ -225,8 +220,7 @@ function build_forest(
                     m_pois,
                     max_depth,
                     min_samples_leaf,
-                    min_samples_split,
-                    min_purity_increase)
+                    min_samples_split)
             end
         else
             Threads.@threads for i in 1:n_trees
@@ -249,8 +243,7 @@ function build_forest(
                     m_pois,
                     max_depth,
                     min_samples_leaf,
-                    min_samples_split,
-                    min_purity_increase)
+                    min_samples_split)
             end
         end
     else
