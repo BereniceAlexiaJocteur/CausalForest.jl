@@ -43,7 +43,7 @@ module treecausation
     end
 
     # find an optimal split that satisfy the given constraints
-    # (max_depth, min_samples_split, min_purity_increase)
+    # (max_depth, min_samples_split)
     function _split!(
             X                   :: AbstractMatrix{S}, # the feature array
             Y                   :: AbstractVector{Float64}, # the label array
@@ -84,8 +84,7 @@ module treecausation
 
         if (min_samples_leaf * 2 >  n_samples
          || min_samples_split    >  n_samples
-         || max_depth            <= node.depth
-         || node.old_purity < 1e-10 # TODO verif borne  + TODO considere critère traitement
+         || max_depth            <= node.depth #TODO considere critère traitement
          )
             node.is_leaf = true
             return
@@ -186,8 +185,7 @@ module treecausation
         # no splits honor min_samples_leaf
         node.new_purity = best_purity
         @inbounds if (unsplittable
-                || best_feature == -1 # TODO on met ca au cas où best pur = infini
-                )
+                || best_feature == -1) # in case best pur = infini
             node.is_leaf = true
             return
         else
@@ -283,8 +281,7 @@ module treecausation
         #    m_pois,
         #    max_depth,
         #    min_samples_leaf,
-        #    min_samples_split,
-        #    min_purity_increase)
+        #    min_samples_split)
 
         root, indX = _fit(
             X,
