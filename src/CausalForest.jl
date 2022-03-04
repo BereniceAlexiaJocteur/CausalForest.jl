@@ -12,9 +12,17 @@ import StatsBase
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
     build_tree, build_forest, apply_forest
 
-########## Types ##########
+#####Includes#####
 
-# TODO actualiser ses types pour causal forest uniquement + pas overwrite DecisionTree + ajouter à export
+include("util.jl")
+include("load_data.jl")
+include("oob_random_forest.jl")
+include("classification/tree.jl")
+include("classification/main.jl")
+include("regression/tree.jl")
+include("regression/main.jl")
+
+########## Types ##########
 
 struct LeafCausalH # honest
     inds_build   :: Vector{Int} # indices in the leaf during construction
@@ -56,11 +64,16 @@ end
 
 struct EnsembleCausal{S}
     trees     :: Union{Vector{TreeCausalH{S}}, Vector{TreeCausalNH{S}}}
+    centering :: Bool
     bootstrap :: Bool
     honest    :: Bool
     X         :: AbstractMatrix{S}
     Y         :: AbstractVector{Float64}
     T         :: AbstractVector{Int}
+    model_Y   :: Union{Nothing, EnsembleOOB{S, Float64}}
+    model_T   :: Union{Nothing, EnsembleOOB{S, Int}}
+    Y_center  :: Union{Nothing, AbstractVector{Float64}}
+    T_center  :: Union{Nothing, AbstractVector{Int}}
 end
 
 
@@ -72,21 +85,8 @@ is_leaf(n::NodeCausalNH) = false
 
 length(forest::EnsembleCausal) = length(forest.trees)
 
-#TODO
-#convert(::Type{Node{S, T}}, lf::Leaf{T}) where {S, T} = Node(0, zero(S), lf, Leaf(zero(T), [zero(T)]))
-#promote_rule(::Type{Node{S, T}}, ::Type{Leaf{T}}) where {S, T} = Node{S, T}
-#promote_rule(::Type{Leaf{T}}, ::Type{Node{S, T}}) where {S, T} = Node{S, T}
-
-
 #####Includes#####
 
-include("util.jl")
-include("load_data.jl")
-include("oob_random_forest.jl")
-include("classification/tree.jl")
-include("classification/main.jl")
-include("regression/tree.jl")
-include("regression/main.jl")
 include("causal/tree.jl")
 include("causal/main.jl")
 

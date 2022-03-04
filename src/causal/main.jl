@@ -31,7 +31,7 @@ function _convertH(node::treecausation.NodeMeta{S}, indX::Vector{Int}) where {S}
 end
 
 function _fill!(
-        node     :: LeafOrNodeCausalH{S}, # TODO c'est plus node causal
+        node     :: LeafOrNodeCausalH{S},
         ind      :: Int,
         X        :: Vector{S}) where {S}
 
@@ -106,7 +106,8 @@ function build_tree(
 end
 
 
-function build_forest(
+function build_forest( #TODO centering
+    centering          :: Bool,
     bootstrap          :: Bool,
     honest             :: Bool,
     labels             :: AbstractVector{T},
@@ -140,6 +141,22 @@ function build_forest(
         forest = Vector{TreeCausalNH{S}}(undef, n_trees)
     end
 
+    if centering
+        model_Y = build_forest_oob(labels, features, -1, 100)
+        model_T = build_forest_oob(treatment, features, -1, 100)
+        Y_center = labels - apply_forest_oob(model_Y)
+        T_center = treatment - apply_forest_oob(model_T)
+        Y_vec = Y_center
+        T_vec = T_center
+    else
+        model_Y = nothing
+        model_T = nothing
+        Y_center = nothing
+        T_center = nothing
+        Y_vec = labels
+        T_vec = treatment
+    end
+
     if rng isa Random.AbstractRNG
         if bootstrap
             Threads.@threads for i in 1:n_trees
@@ -156,8 +173,8 @@ function build_forest(
                     honest,
                     indsbuild,
                     indspred,
-                    labels,
-                    treatment,
+                    Y_vec,
+                    T_vec,
                     features,
                     m_pois,
                     max_depth,
@@ -178,8 +195,8 @@ function build_forest(
                     honest,
                     indsbuild,
                     indspred,
-                    labels,
-                    treatment,
+                    Y_vec,
+                    T_vec,
                     features,
                     m_pois,
                     max_depth,
@@ -205,8 +222,8 @@ function build_forest(
                     honest,
                     indsbuild,
                     indspred,
-                    labels,
-                    treatment,
+                    Y_vec,
+                    T_vec,
                     features,
                     m_pois,
                     max_depth,
@@ -227,8 +244,8 @@ function build_forest(
                     honest,
                     indsbuild,
                     indspred,
-                    labels,
-                    treatment,
+                    Y_vec,
+                    T_vec,
                     features,
                     m_pois,
                     max_depth,
@@ -240,7 +257,7 @@ function build_forest(
         throw("rng must of be type Integer or Random.AbstractRNG")
     end
 
-    return EnsembleCausal{S}(forest, bootstrap, honest, features, labels, treatment)
+    return EnsembleCausal{S}(forest, centering, bootstrap, honest, features, labels, treatment, model_Y, model_T, Y_center, T_center)
 end
 
 apply_treeH(leaf :: LeafCausalH, x :: AbstractVector{S}) where {S} = leaf.inds_pred
@@ -283,6 +300,7 @@ function apply_forest(
     x      :: AbstractVector{S}
     ) where {S}
 
+    centering = forest.centering
     n_samples = length(forest.Y)
     alpha = zeros(n_samples)
     n_trees = length(forest)
@@ -296,15 +314,22 @@ function apply_forest(
     alpha = alpha/n_trees
     T_alpha = 0
     Y_alpha = 0
+    if centering
+        Y_vec =  forest.Y_center
+        T_vec =  forest.T_center
+    else
+        Y_vec = forest.Y
+        T_vec = forest.T
+    end
     for i in 1:n_samples
-        T_alpha += alpha[i]*forest.T[i]
-        Y_alpha += alpha[i]*forest.Y[i]
+        T_alpha += alpha[i]*T_vec[i]
+        Y_alpha += alpha[i]*Y_vec[i]
     end
     num = 0
     denom = 0
     for i in 1:n_samples
-        diffT = forest.T[i]-T_alpha
-        num += alpha[i]*diffT*(forest.Y[i]-Y_alpha)
+        diffT = T_vec[i]-T_alpha
+        num += alpha[i]*diffT*(Y_vec[i]-Y_alpha)
         denom += alpha[i]*diffT^2
     end
     return num/denom

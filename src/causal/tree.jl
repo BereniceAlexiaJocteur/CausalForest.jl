@@ -19,7 +19,7 @@ module treecausation
         threshold   :: S            # threshold value
         is_leaf     :: Bool
         depth       :: Int
-        region      :: UnitRange{Int} # a slice of the samples used to decide the split of the node # TODO ca doit etre les indices d'origine et pas les indices après centrage
+        region      :: UnitRange{Int} # a slice of the samples used to decide the split of the node
         features    :: Vector{Int}    # a list of features
         split_at    :: Int            # index of samples
         function NodeMeta{S}(
@@ -55,7 +55,7 @@ module treecausation
             min_samples_split   :: Int, # the minimum number of samples in needed for a split
             indX                :: AbstractVector{Int}, # an array of sample indices,
                                                 # we split using samples in indX[node.region]
-            # the two arrays below are given for optimization purposes
+            # the three arrays below are given for optimization purposes
             Xf                  :: AbstractVector{S},
             Yf                  :: AbstractVector{Float64},
             Wf                  :: AbstractVector{Int},
@@ -73,7 +73,7 @@ module treecausation
         t_w_sum = zero(Int) # sum of W in node
         t_y_sum = zero(Float64) # sum of Y in node
         t_w_ssq = zero(Int) # sum of W squares in node
-        t_wy_sum = zero(Float64) # sum of WY
+        t_wy_sum = zero(Float64) # sum of WY in node
         @inbounds @simd for i in 1:n_samples
             t_w_sum += Wf[i]
             t_y_sum += Yf[i]
@@ -84,7 +84,7 @@ module treecausation
 
         if (min_samples_leaf * 2 >  n_samples
          || min_samples_split    >  n_samples
-         || max_depth            <= node.depth #TODO considere critère traitement
+         || max_depth            <= node.depth
          )
             node.is_leaf = true
             return
@@ -136,8 +136,7 @@ module treecausation
                     ? searchsortedlast(Xf, curr_f, lo, n_samples, Base.Order.Forward)
                     : lo)
 
-                # TODO ajouter condition nombre de trt
-                if lo-1 >= min_samples_leaf && n_samples - (lo-1) >= min_samples_leaf # TODO ajouter condition sur nb treat
+                if lo-1 >= min_samples_leaf && n_samples - (lo-1) >= min_samples_leaf # TODO ajouter condition sur prop treat
                     unsplittable = false
                     difference = (l_w_ssq/nl - (l_w_sum/nl)^2)/(l_wy_sum/nl - (l_w_sum/nl))-(r_w_ssq/nr - (r_w_sum/nr)^2)/(r_wy_sum/nr - (r_w_sum/nr))
                     purity = (nl*nr)/(n_samples*n_samples)*difference*difference
@@ -185,7 +184,7 @@ module treecausation
         # no splits honor min_samples_leaf
         node.new_purity = best_purity
         @inbounds if (unsplittable
-                || best_feature == -1) # in case best pur = infini
+                || best_feature == -1) # in case best pur = inf
             node.is_leaf = true
             return
         else
@@ -236,7 +235,7 @@ module treecausation
         Xf  = Array{S}(undef, n_samples)
         Wf  = Array{Int}(undef, n_samples)
 
-        root = NodeMeta{S}(collect(1:n_features), 1:length(indX), 0, Inf) # TODO modifier valeur initiale de old pur
+        root = NodeMeta{S}(collect(1:n_features), 1:length(indX), 0, Inf)
         stack = NodeMeta{S}[root]
 
         @inbounds while length(stack) > 0
