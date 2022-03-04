@@ -343,4 +343,33 @@ module util
         end
     end
 
+    function check_input(
+            X                   :: AbstractMatrix{S},
+            Y                   :: AbstractVector{Float64},
+            W                   :: AbstractVector{Int},
+            indX                :: AbstractVector{Int},
+            mpois               :: Int,
+            max_depth           :: Int,
+            min_samples_leaf    :: Int,
+            min_samples_split   :: Int) where {S}
+        n_samples, n_features = size(X)
+        if length(Y) != n_samples
+            throw("dimension mismatch between X and Y ($(size(X)) vs $(size(Y))")
+        elseif length(W) != n_samples
+            throw("dimension mismatch between X and T ($(size(X)) vs $(size(W))")
+        elseif max_depth < -1
+            throw("unexpected value for max_depth: $(max_depth) (expected:"
+                * " max_depth >= 0, or max_depth = -1 for infinite depth)")
+        elseif mpois < -1
+            throw("unexpected value for max_depth: $(mpois) (expected:"
+                * " mpois >= 0, or mpois = -1 for by default value)")
+        elseif min_samples_leaf < 1
+            throw("min_samples_leaf must be a positive integer "
+                * "(given $(min_samples_leaf))")
+        elseif min_samples_split < 2
+            throw("min_samples_split must be at least 2 "
+                * "(given $(min_samples_split))")
+        end
+    end
+
 end

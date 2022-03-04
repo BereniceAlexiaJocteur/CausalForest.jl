@@ -83,7 +83,6 @@ module treeregressor
          || max_depth            <= node.depth
           # equivalent to old_purity > -1e-7
          || tsum * node.label    > -1e-7 * wsum + tssq)
-            # TODO : Add Wf[1:n_samples] to this thing
             node.is_leaf = true
             return
         end

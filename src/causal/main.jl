@@ -106,7 +106,7 @@ function build_tree(
 end
 
 
-function build_forest( #TODO centering
+function build_forest(
     centering          :: Bool,
     bootstrap          :: Bool,
     honest             :: Bool,

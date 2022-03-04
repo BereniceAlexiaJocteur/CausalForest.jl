@@ -136,7 +136,7 @@ module treecausation
                     ? searchsortedlast(Xf, curr_f, lo, n_samples, Base.Order.Forward)
                     : lo)
 
-                if lo-1 >= min_samples_leaf && n_samples - (lo-1) >= min_samples_leaf # TODO ajouter condition sur prop treat
+                if lo-1 >= min_samples_leaf && n_samples - (lo-1) >= min_samples_leaf
                     unsplittable = false
                     difference = (l_w_ssq/nl - (l_w_sum/nl)^2)/(l_wy_sum/nl - (l_w_sum/nl))-(r_w_ssq/nr - (r_w_sum/nr)^2)/(r_wy_sum/nr - (r_w_sum/nr))
                     purity = (nl*nr)/(n_samples*n_samples)*difference*difference
@@ -272,15 +272,15 @@ module treecausation
 
         n_samples, n_features = size(X)
 
-        #util.check_input( # TODO modif cette fonction et son nom
-        #    X,
-        #    Y,
-        #    W,
-        #    indX,
-        #    m_pois,
-        #    max_depth,
-        #    min_samples_leaf,
-        #    min_samples_split)
+        util.check_input(
+            X,
+            Y,
+            W,
+            indX,
+            m_pois,
+            max_depth,
+            min_samples_leaf,
+            min_samples_split)
 
         root, indX = _fit(
             X,
