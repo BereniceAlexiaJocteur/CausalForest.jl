@@ -119,7 +119,8 @@ function build_forest(
     honest_proportion   = 0.5,
     max_depth           = -1,
     min_samples_leaf    = 5,
-    min_samples_split   = 2;
+    min_samples_split   = 2,
+    n_trees_centering   = 100;
     rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
 
     if n_trees < 1
@@ -142,8 +143,8 @@ function build_forest(
     end
 
     if centering
-        model_Y = build_forest_oob(labels, features, -1, 100)
-        model_T = build_forest_oob(treatment, features, -1, 100)
+        model_Y = build_forest_oob(labels, features, -1, n_trees_centering)
+        model_T = build_forest_oob(treatment, features, -1, n_trees_centering)
         Y_center = labels - apply_forest_oob(model_Y)
         T_center = treatment - apply_forest_oob(model_T)
         Y_vec = Y_center
