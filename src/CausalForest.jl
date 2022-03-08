@@ -55,11 +55,13 @@ struct TreeCausalH{S} # honest causal tree
     tree       :: LeafOrNodeCausalH{S}
     inds_build :: Vector{Int}
     inds_pred  :: Vector{Int}
+    oob        :: Vector{Int}
 end
 
 struct TreeCausalNH{S} # honest causal tree
     tree :: LeafOrNodeCausalNH{S}
     inds :: Vector{Int}
+    oob  :: Vector{Int}
 end
 
 struct EnsembleCausal{S}

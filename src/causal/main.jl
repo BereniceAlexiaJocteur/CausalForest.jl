@@ -99,9 +99,9 @@ function build_tree(
         rng                 = rng)
 
     if honest
-        return TreeCausalH{S}(fill_tree(t.root, indspred, t.inds, features), indsbuild, indspred)
+        return TreeCausalH{S}(fill_tree(t.root, indspred, t.inds, features), indsbuild, indspred, setdiff(collect(1:length(labels)), union(indsbuild, indspred)))
     else
-        return TreeCausalNH{S}(_convertNH(t.root, t.inds), indsbuild)
+        return TreeCausalNH{S}(_convertNH(t.root, t.inds), indsbuild, setdiff(collect(1:length(labels)), indsbuild))
     end
 end
 
