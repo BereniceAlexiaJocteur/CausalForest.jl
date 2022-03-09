@@ -10,7 +10,8 @@ using Statistics
 import StatsBase
 
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
-    build_tree, build_forest, apply_forest
+    build_tree, build_forest, apply_forest,
+    get_occurence_frequencies, sample_U # pour test
 
 #####Includes#####
 
@@ -91,6 +92,8 @@ length(forest::EnsembleCausal) = length(forest.trees)
 
 include("causal/tree.jl")
 include("causal/main.jl")
-
+include("shaff/sampling.jl")
+include("shaff/prf.jl")
+include("shaff/shaff.jl")
 
 end #module

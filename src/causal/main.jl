@@ -119,7 +119,7 @@ function build_forest(
     honest_proportion   = 0.5,
     max_depth           = -1,
     min_samples_leaf    = 5,
-    min_samples_split   = 2,
+    min_samples_split   = 10,
     n_trees_centering   = 100;
     rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
 
