@@ -1,4 +1,4 @@
-function get_all_paths_in_tree!( #TODO le probleme est la on va faire comme dans pythan OKOK
+function get_all_paths_in_tree!(
     tree    :: Union{LeafOrNodeCausalH{S}, LeafOrNodeCausalNH{S}},
     result  = [],
     path    = []
@@ -17,7 +17,7 @@ function get_all_paths_in_tree!( #TODO le probleme est la on va faire comme dans
     end
 
     if test
-        push!(result, copy(path)) # TODO copy de path plutot
+        push!(result, copy(path))
     end
 
     pop!(path)
