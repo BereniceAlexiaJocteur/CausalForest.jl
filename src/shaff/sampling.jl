@@ -26,7 +26,7 @@ end
 
 function get_occurence_frequencies(forest :: EnsembleCausal{S}) where {S}
     n_trees = length(forest.trees)
-    dico = Dict{Set, Float64}()
+    dico = Dict{Set{Int}, Float64}()
     full_set = Set(1:size(forest.X, 2))
     empty_set = Set()
 
@@ -62,6 +62,6 @@ function get_occurence_frequencies(forest :: EnsembleCausal{S}) where {S}
 
 end
 
-function sample_U(dico :: Dict{Set, Float64}, n :: Int)
+function sample_U(dico :: Dict{Set{Int}, Float64}, n :: Int)
     return StatsBase.sample(collect(keys(dico)), StatsBase.pweights(collect(values(dico))), n)
 end

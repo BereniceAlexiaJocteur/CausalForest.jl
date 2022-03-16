@@ -7,11 +7,13 @@ using DecisionTree
 using DelimitedFiles
 using Random
 using Statistics
+using NonNegLeastSquares
+using LinearAlgebra
 import StatsBase
 
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
-    build_tree, build_forest, apply_forest,
-    get_occurence_frequencies, sample_U # pour test
+    build_tree, build_forest, apply_forest, shaff,
+    get_occurence_frequencies, sample_U, apply_forest_oob # pour test
 
 #####Includes#####
 
@@ -25,12 +27,12 @@ include("regression/main.jl")
 
 ########## Types ##########
 
-struct LeafCausalH # honest
+mutable struct LeafCausalH # honest
     inds_build   :: Vector{Int} # indices in the leaf during construction
     inds_pred    :: Vector{Int} # indices to predict these are the same if no honesty
 end
 
-struct LeafCausalNH # nothonest
+mutable struct LeafCausalNH # nothonest
     inds_build   :: Vector{Int} # indices in the leaf
 end
 
@@ -50,7 +52,7 @@ end
 
 LeafOrNodeCausalH{S} = Union{LeafCausalH, NodeCausalH{S}}
 
-const LeafOrNodeCausalNH{S} = Union{LeafCausalNH, NodeCausalNH{S}}
+LeafOrNodeCausalNH{S} = Union{LeafCausalNH, NodeCausalNH{S}}
 
 struct TreeCausalH{S} # honest causal tree
     tree       :: LeafOrNodeCausalH{S}

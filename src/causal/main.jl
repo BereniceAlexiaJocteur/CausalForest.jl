@@ -6,8 +6,9 @@ function split_inds(inds::Vector{Int}, percentage::Float64)
 
     N = length(inds)
     splitindex = round(Int, percentage*N)
-    shuffle!(inds)
-    return inds[splitindex+1:N], inds[1:splitindex]
+    copy_inds = copy(inds)
+    shuffle!(copy_inds)
+    return copy_inds[splitindex+1:N], copy_inds[1:splitindex]
 end
 
 function _convertNH(node::treecausation.NodeMeta{S}, indX::Vector{Int}) where {S}
@@ -130,6 +131,8 @@ function build_forest(
         throw("partial_sampling must be in the range (0,1]")
     end
 
+    n_tot_samples = length(labels)
+
     if bootstrap
         n_samples = length(labels)
     else
@@ -162,12 +165,12 @@ function build_forest(
         if bootstrap
             Threads.@threads for i in 1:n_trees
                 if honest
-                    inds = collect(1:n_samples)
+                    inds = collect(1:n_tot_samples)
                     inds1, inds2 = split_inds(inds, honest_proportion)
                     indsbuild = rand(rng, inds1, length(inds1))
                     indspred = rand(rng, inds2, length(inds2))
                 else
-                    indsbuild = rand(rng, 1:n_samples, n_samples)
+                    indsbuild = rand(rng, 1:n_tot_samples, n_samples)
                     indspred = nothing
                 end
                 forest[i] = build_tree(
@@ -186,10 +189,10 @@ function build_forest(
         else
             Threads.@threads for i in 1:n_trees
                 if honest
-                    inds = StatsBase.sample(rng, 1:n_samples, n_samples; replace=false)
+                    inds = StatsBase.sample(rng, 1:n_tot_samples, n_samples; replace=false)
                     indsbuild, indspred = split_inds(inds, honest_proportion)
                 else
-                    indsbuild = StatsBase.sample(rng, 1:n_samples, n_samples; replace=false)
+                    indsbuild = StatsBase.sample(rng, 1:n_tot_samples, n_samples; replace=false)
                     indspred = nothing
                 end
                 forest[i] = build_tree(
@@ -211,12 +214,12 @@ function build_forest(
             Threads.@threads for i in 1:n_trees
                 Random.seed!(rng + i)
                 if honest
-                    inds = collect(1:n_samples)
+                    inds = collect(1:n_tot_samples)
                     inds1, inds2 = split_inds(inds, honest_proportion)
                     indsbuild = rand(inds1, length(inds1))
                     indspred = rand(inds2, length(inds2))
                 else
-                    indsbuild = rand(1:n_samples, n_samples)
+                    indsbuild = rand(1:n_tot_samples, n_samples)
                     indspred = nothing
                 end
                 forest[i] = build_tree(
@@ -235,10 +238,10 @@ function build_forest(
             Threads.@threads for i in 1:n_trees
                 Random.seed!(rng + i)
                 if honest
-                    inds = StatsBase.sample(1:n_samples, n_samples; replace=false)
+                    inds = StatsBase.sample(1:n_tot_samples, n_samples; replace=false)
                     indsbuild, indspred = split_inds(inds, honest_proportion)
                 else
-                    indsbuild = StatsBase.sample(1:n_samples, n_samples; replace=false)
+                    indsbuild = StatsBase.sample(1:n_tot_samples, n_samples; replace=false)
                     indspred = nothing
                 end
                 forest[i] = build_tree(

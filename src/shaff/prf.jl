@@ -92,15 +92,16 @@ end
 
 function build_projected_tree(
     tree   :: TreeCausalH{S},
-    set_u  :: Set{Int}
+    set_u  :: Set{Int},
+    X      :: AbstractMatrix{S}
     ) where {S}
 
     inds_build = tree.inds_build
     inds_pred = tree.inds_pred
-    root = copy(tree.tree) # TODO verif si pas deepcopy plutot
+    root = deecopy(tree.tree) # TODO verif si pas deepcopy plutot si juste copy il faut la definir a la main  Base.copy(s::Nodeetc)
 
     _empty!(root)
-    _fill_proj!(root, inds_build, inds_pred)
+    _fill_proj!(root, inds_build, inds_pred, X, set_u)
 
     return TreeCausalH{S}(root, inds_build, inds_pred, tree.oob)
 
@@ -109,20 +110,21 @@ end
 
 function build_projected_tree(
     tree   :: TreeCausalNH{S},
-    set_u  :: Set{Int}
+    set_u  :: Set{Int},
+    X      :: AbstractMatrix{S}
     ) where {S}
 
     inds = tree.inds
-    root = copy(tree.tree) # TODO verif si pas deepcopy plutot
+    root = deepcopy(tree.tree) # TODO verif si pas deepcopy plutot
 
     _empty!(root)
-    _fill_proj!(root, inds)
+    _fill_proj!(root, inds, X, set_u)
 
-    return TreeCausalH{S}(root, inds, tree.oob)
+    return TreeCausalNH{S}(root, inds, tree.oob)
 
 end
 
-function apply_forest_oob( #TODO
+function apply_forest_oob(
     forest :: EnsembleCausal{S}
     ) where {S}
 
@@ -146,7 +148,7 @@ function apply_forest_oob( #TODO
         for b in 1:n_trees
             if j in forest.trees[b].oob
                 nb_oob_samples += 1
-                N = neighbours(forest, b, x)
+                N = neighbours(forest, b, forest.X[j, :]) #TODO attention x avant mais mort  --> forest.X[j,:] ??
                 l = length(N)
                 for e in N
                     alpha[e] += 1/l
@@ -168,10 +170,11 @@ function apply_forest_oob( #TODO
             denom += alpha[i]*diffT^2
         end
         predictions[j] = num/denom
+    end
     return predictions
 end
 
-function prf_causal_effect( #TODO bien faire sur OOB
+function prf_causal_effect( # causal effect on oob
     forest   :: EnsembleCausal{S},
     set_u    :: Set{Int}
     ) where {S}
@@ -185,13 +188,12 @@ function prf_causal_effect( #TODO bien faire sur OOB
     end
 
     for i in 1:n_trees
-        trees[i] = build_projected_tree(forest.trees[i], set_u)
+        trees[i] = build_projected_tree(forest.trees[i], set_u, forest.X)
     end
 
     prf = EnsembleCausal{S}(trees, forest.centering, forest.bootstrap, forest.honest,
         forest.X, forest.Y, forest.T, forest.model_Y, forest.model_T, forest.Y_center,
         forest.T_center)
 
-    #TODO on apply la nouvelle forest sur oob
     return apply_forest_oob(prf)
 end
