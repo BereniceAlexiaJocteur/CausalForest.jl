@@ -71,6 +71,7 @@ function build_tree(
         labels             :: AbstractVector{T},
         treatment          :: AbstractVector{Int},
         features           :: AbstractMatrix{S},
+        const_mtry         :: Bool,
         m_pois              = -1,
         max_depth           = -1,
         min_samples_leaf    = 5,
@@ -81,9 +82,14 @@ function build_tree(
         max_depth = typemax(Int)
     end
 
-    if m_pois == -1
+    if m_pois == -1 && !const_mtry
         p = size(features, 2)
-        m_pois = min(sqrt(p)+20, p)
+        m_pois = floor(Int, min(sqrt(p)+20, p))
+    end
+
+    if m_pois == -1 && const_mtry
+        p = size(features, 2)
+        m_pois = floor(Int, sqrt(p))
     end
 
     rng = mk_rng(rng)::Random.AbstractRNG
@@ -93,6 +99,7 @@ function build_tree(
         Y                   = labels,
         W                   = treatment,
         indX                = indsbuild,
+        const_mtry          = const_mtry,
         m_pois              = Int(m_pois),
         max_depth           = Int(max_depth),
         min_samples_leaf    = Int(min_samples_leaf),
@@ -106,7 +113,16 @@ function build_tree(
     end
 end
 
+"""
+Build a causal forest.
 
+- if centering=True Y and W are centered else they stay unchanged
+- if bootstrap=True we sample for each tree via bootstrap else we use subsampling
+- if honest=True we use 2 samples one too build splits and the other one to fill leaves
+    otherwise we use the whole sample for the two steps
+-if const_mtry=True we use a constant m try otherwise we use a random mtry following
+    min(max(Poisson(m_pois),1),number_of_features)
+"""
 function build_forest(
     centering          :: Bool,
     bootstrap          :: Bool,
@@ -114,6 +130,7 @@ function build_forest(
     labels             :: AbstractVector{T},
     treatment          :: AbstractVector{Int},
     features           :: AbstractMatrix{S},
+    const_mtry         :: Bool,
     m_pois              = -1,
     n_trees             = 10,
     partial_sampling    = 0.7,
@@ -180,6 +197,7 @@ function build_forest(
                     Y_vec,
                     T_vec,
                     features,
+                    const_mtry,
                     m_pois,
                     max_depth,
                     min_samples_leaf,
@@ -202,6 +220,7 @@ function build_forest(
                     Y_vec,
                     T_vec,
                     features,
+                    const_mtry,
                     m_pois,
                     max_depth,
                     min_samples_leaf,
@@ -229,6 +248,7 @@ function build_forest(
                     Y_vec,
                     T_vec,
                     features,
+                    const_mtry,
                     m_pois,
                     max_depth,
                     min_samples_leaf,
@@ -251,6 +271,7 @@ function build_forest(
                     Y_vec,
                     T_vec,
                     features,
+                    const_mtry,
                     m_pois,
                     max_depth,
                     min_samples_leaf,
@@ -339,6 +360,9 @@ function apply_forest(
     return num/denom
 end
 
+"""
+Get the causal effect for each row in x given a causal forest
+"""
 function apply_forest(
     forest :: EnsembleCausal{S},
     x      :: AbstractMatrix{S}

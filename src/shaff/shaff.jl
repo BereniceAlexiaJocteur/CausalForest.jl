@@ -22,7 +22,12 @@ end
 function weight(set_u :: Set{Int}, n_imp :: Int)
     card_u = length(set_u)
     combi = binomial(n_imp, card_u)
-    return (n_imp - 1) / (combi * card_u * (n_imp - card_u))
+    res = (n_imp - 1) / (combi * card_u * (n_imp - card_u))
+    if res > 1000     #TODO histoire des poids infinis
+        return 1000
+    else
+        return res
+    end
 end
 
 function to_binary_vector(set_u :: Set{Int}, n_imp :: Int)
@@ -54,26 +59,26 @@ function estimate_Shapley(
 
     w_vect = cat([sqrt((weight(U, n_imp)*dict_sets[U])/(K*proba_set[U])) for U in keys(dict_sets)],
                  [sqrt((weight(U, n_imp)*dict_sets[U])/(K*proba_set[U])) for U in keys(dict_sets)],
-                 dims = 1)
+                 10000, 10000; dims = 1)
     w_matrix = diagm(w_vect)
-
+    
     z_vect = cat([to_binary_vector(U, n_imp) for U in keys(dict_sets)],
                  [to_binary_vector_comp(U, n_imp) for U in keys(dict_sets)],
-                 dims = 1)
+                 [[0 for i=1:n_imp]], [[1 for i=1:n_imp]]; dims = 1)
     z_matrix = vec(z_vect)
-
-    A_matrix = w_matrix * z_matrix
-    A_matrix = reduce(hcat, A_matrix)'
 
     cause = apply_forest_oob(forest)
 
     cost_matrix = cat([transpose(cost_function(forest, set_u, cause)) for set_u in keys(dict_sets)],
-                      [transpose(cost_function(forest, setdiff(Set(1:n_imp), set_u), cause)) for set_u in keys(dict_sets)], #TODO idem sur comp
-                      dims = 1)
+                      [transpose(cost_function(forest, setdiff(Set(1:n_imp), set_u), cause)) for set_u in keys(dict_sets)],
+                      0, 1; dims = 1)
 
-    b_matrix = w_matrix * cost_matrix #TODO modifier dim ??
+    A_matrix = w_matrix * z_matrix
+    A_matrix = reduce(hcat, A_matrix)'
 
-    beta = nonneg_lsq(A_matrix, b_matrix) #TODO modifier l'algo pivot vs nnls
+    b_matrix = w_matrix * cost_matrix
+
+    beta = nonneg_lsq(A_matrix, b_matrix)
 
     return beta
 

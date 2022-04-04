@@ -348,6 +348,7 @@ module util
             Y                   :: AbstractVector{Float64},
             W                   :: AbstractVector{Int},
             indX                :: AbstractVector{Int},
+            const_mtry          :: Bool,
             mpois               :: Int,
             max_depth           :: Int,
             min_samples_leaf    :: Int,

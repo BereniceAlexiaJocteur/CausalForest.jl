@@ -49,6 +49,7 @@ module treecausation
             Y                   :: AbstractVector{Float64}, # the label array
             W                   :: AbstractVector{Int}, # the treatment array
             node                :: NodeMeta{S}, # the node to split
+            const_mtry          :: Bool,
             m_pois              :: Int, # hyperparameter for poisson for random mtry
             max_depth           :: Int, # the maximum depth of the resultant tree
             min_samples_leaf    :: Int, # the minimum number of samples each leaf needs to have
@@ -100,7 +101,11 @@ module treecausation
         # true if every feature is constant
         unsplittable = true
         total_features = size(X, 2)
-        mtry = min(max(PoissonRandom.pois_rand(m_pois), 1), total_features)
+        if const_mtry
+            mtry = m_pois
+        else
+            mtry = min(max(PoissonRandom.pois_rand(m_pois), 1), total_features)
+        end
         random_features = StatsBase.sample(1:total_features, mtry, replace=false)
         for feature in random_features
 
@@ -223,6 +228,7 @@ module treecausation
             Y                     :: AbstractVector{Float64},
             W                     :: AbstractVector{Int},
             indX                  :: AbstractVector{Int},
+            const_mtry            :: Bool,
             m_pois                :: Int,
             max_depth             :: Int,
             min_samples_leaf      :: Int,
@@ -243,6 +249,7 @@ module treecausation
             _split!(
                 X, Y, W,
                 node,
+                const_mtry,
                 m_pois,
                 max_depth,
                 min_samples_leaf,
@@ -264,6 +271,7 @@ module treecausation
             Y                     :: AbstractVector{Float64},
             W                     :: AbstractVector{Int},
             indX                  :: AbstractVector{Int},
+            const_mtry            :: Bool,
             m_pois                :: Int,
             max_depth             :: Int,
             min_samples_leaf      :: Int,
@@ -277,6 +285,7 @@ module treecausation
             Y,
             W,
             indX,
+            const_mtry,
             m_pois,
             max_depth,
             min_samples_leaf,
@@ -287,6 +296,7 @@ module treecausation
             Y,
             W,
             indX,
+            const_mtry,
             m_pois,
             max_depth,
             min_samples_leaf,
