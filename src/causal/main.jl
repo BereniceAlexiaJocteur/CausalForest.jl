@@ -121,7 +121,7 @@ Build a causal forest.
 - if `honest=True` we use 2 samples one too build splits and the other one to fill leaves
     otherwise we use the whole sample for the two steps
 - if `const_mtry=True` we use a constant mtry otherwise we use a random mtry following
-    min(max(Poisson(m_pois),1),number_of_features)
+    `min(max(Poisson(m_pois),1),number_of_features)`
 """
 function build_forest(
     centering          :: Bool,

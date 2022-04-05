@@ -136,7 +136,7 @@ function build_forest_oob(
 end
 
 """
-Prediction on out of bag sample
+Prediction on out of bag sample for a random forest
 """
 function apply_forest_oob(forest::EnsembleOOB{S, T}) where {S, T}
     n_samp = forest.nsamp
