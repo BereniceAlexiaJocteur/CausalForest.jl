@@ -116,11 +116,11 @@ end
 """
 Build a causal forest.
 
-- if centering=True Y and W are centered else they stay unchanged
-- if bootstrap=True we sample for each tree via bootstrap else we use subsampling
-- if honest=True we use 2 samples one too build splits and the other one to fill leaves
+- if `centering=True` Y and W are centered else they stay unchanged
+- if `bootstrap=True` we sample for each tree via bootstrap else we use subsampling
+- if `honest=True` we use 2 samples one too build splits and the other one to fill leaves
     otherwise we use the whole sample for the two steps
--if const_mtry=True we use a constant m try otherwise we use a random mtry following
+- if `const_mtry=True` we use a constant mtry otherwise we use a random mtry following
     min(max(Poisson(m_pois),1),number_of_features)
 """
 function build_forest(

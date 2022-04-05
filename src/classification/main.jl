@@ -64,6 +64,9 @@ function apply_tree_oob(tree::TreeOOB) where {S, T}
     return apply_tree(tree.tree, tree.oobfeat)
 end
 
+"""
+Build a random forest which keep track of the oob sample
+"""
 function build_forest_oob(
         labels              :: AbstractVector{T},
         features            :: AbstractMatrix{S},
@@ -132,6 +135,9 @@ function build_forest_oob(
     return EnsembleOOB{S, T}(length(labels), features, forest)
 end
 
+"""
+Prediction on out of bag sample
+"""
 function apply_forest_oob(forest::EnsembleOOB{S, T}) where {S, T}
     n_samp = forest.nsamp
     n_trees = length(forest.trees)
