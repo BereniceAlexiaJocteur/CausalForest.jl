@@ -71,7 +71,7 @@ function build_forest_oob(
         labels              :: AbstractVector{T},
         features            :: AbstractMatrix{S},
         n_subfeatures       = -1,
-        n_trees             = 10,
+        n_trees             = 100,
         partial_sampling    = 0.7,
         max_depth           = -1,
         min_samples_leaf    = 1,

@@ -13,7 +13,7 @@ end
 
 function _convertNH(node::treecausation.NodeMeta{S}, indX::Vector{Int}) where {S}
     if node.is_leaf
-        return LeafCausalNH(indX[node.region])
+        return LeafCausalNH(indX[node.region], nothing)
     else
         left = _convertNH(node.l, indX)
         right = _convertNH(node.r, indX)
@@ -23,7 +23,7 @@ end
 
 function _convertH(node::treecausation.NodeMeta{S}, indX::Vector{Int}) where {S}
     if node.is_leaf
-        return LeafCausalH(indX[node.region], Vector{Int}())
+        return LeafCausalH(indX[node.region], Vector{Int}(), nothing)
     else
         left = _convertH(node.l, indX)
         right = _convertH(node.r, indX)
