@@ -147,17 +147,16 @@ git-tree-sha1 = "7fd44fd4ff43fc60815f8e764c0f352b83c49151"
 uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
 version = "0.1.1"
 
+[[deps.IterTools]]
+git-tree-sha1 = "fa6287a4469f5e048d763df38279ee729fbd44e5"
+uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+version = "1.4.0"
+
 [[deps.JLLWrappers]]
 deps = ["Preferences"]
 git-tree-sha1 = "abc9885a7ca2052a736a600f7fa66209f96506e1"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
 version = "1.4.1"
-
-[[deps.LLVMOpenMP_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "ad927676766e6529a2d5152f12040620447c0c9b"
-uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-version = "14.0.4+0"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -202,6 +201,12 @@ version = "0.3.15"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+
+[[deps.MLBase]]
+deps = ["IterTools", "Random", "Reexport", "StatsBase"]
+git-tree-sha1 = "3bd9fd4baf19dfc1edf344bc578da7f565da2e18"
+uuid = "f0e99cf1-93fa-52ec-9ecc-5026115318e0"
+version = "0.9.0"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -445,18 +450,6 @@ version = "1.0.2"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
-
-[[deps.XGBoost]]
-deps = ["Libdl", "Printf", "Random", "SparseArrays", "Statistics", "Test", "XGBoost_jll"]
-git-tree-sha1 = "63685309857689d515395f7895a4d90b5942f716"
-uuid = "009559a3-9522-5dbb-924b-0b6ed2b22bb9"
-version = "1.5.2"
-
-[[deps.XGBoost_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LLVMOpenMP_jll", "Libdl", "Pkg"]
-git-tree-sha1 = "ba2ca02a779cfa13a32741933667c9ba3ead1711"
-uuid = "a5c6f535-4255-5ca2-a466-0e519f119c46"
-version = "1.6.1+0"
 
 [[deps.Zlib_jll]]
 deps = ["Libdl"]

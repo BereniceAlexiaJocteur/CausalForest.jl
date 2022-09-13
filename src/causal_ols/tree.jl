@@ -2,7 +2,7 @@
 # library which is distributed under the 3-Clause BSD license.
 # The rest of CausalForest.jl is released under the MIT license.
 
-module treecausation_3_opti_xgboost
+module treecausation_ols
     include("../util.jl")
 
     import Random

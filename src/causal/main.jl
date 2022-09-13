@@ -1,3 +1,6 @@
+import DecisionTree
+import MLBase
+
 function split_inds(inds::Vector{Int}, percentage::Float64)
 
     if !(0.0 < percentage < 1.0)
@@ -13,7 +16,7 @@ end
 
 function _convertNH(node::treecausation.NodeMeta{S}, indX::Vector{Int}) where {S}
     if node.is_leaf
-        return LeafCausalNH(indX[node.region], nothing)
+        return LeafCausalNH(indX[node.region], 0)
     else
         left = _convertNH(node.l, indX)
         right = _convertNH(node.r, indX)
@@ -23,7 +26,7 @@ end
 
 function _convertH(node::treecausation.NodeMeta{S}, indX::Vector{Int}) where {S}
     if node.is_leaf
-        return LeafCausalH(indX[node.region], Vector{Int}(), nothing)
+        return LeafCausalH(indX[node.region], Vector{Int}(), 0)
     else
         left = _convertH(node.l, indX)
         right = _convertH(node.r, indX)
@@ -47,11 +50,13 @@ function _fill!(
     end
 end
 
-function fill_tree(
+function fill_treeH(
         node     :: treecausation.NodeMeta{S},
         indspred :: AbstractVector{Int},
         indX     :: Vector{Int},
-        X        :: AbstractMatrix{S}) where {S}
+        X        :: AbstractMatrix{S},
+        Y        :: Vector{Float64},
+        T        :: Vector{Int}) where {S}
 
     nodeH = _convertH(node, indX)
     n_samples = length(indspred)
@@ -61,6 +66,17 @@ function fill_tree(
         _fill!(nodeH, ind, X_obs)
     end
     return nodeH
+end
+
+function fill_treeNH(
+        node     :: treecausation.NodeMeta{S},
+        indX     :: Vector{Int},
+        X        :: AbstractMatrix{S},
+        Y        :: Vector{Float64},
+        T        :: Vector{Int}) where {S}
+
+    nodeNH = _convertNH(node, indX)
+    return nodeNH
 end
 
 
@@ -107,24 +123,24 @@ function build_tree(
         rng                 = rng)
 
     if honest
-        return TreeCausalH{S}(fill_tree(t.root, indspred, t.inds, features), indsbuild, indspred, setdiff(collect(1:length(labels)), union(indsbuild, indspred)))
+        return TreeCausalH{S}(fill_treeH(t.root, indspred, t.inds, features, labels, treatment), indsbuild, indspred, setdiff(collect(1:length(labels)), union(indsbuild, indspred)))
     else
-        return TreeCausalNH{S}(_convertNH(t.root, t.inds), indsbuild, setdiff(collect(1:length(labels)), indsbuild))
+        return TreeCausalNH{S}(fill_treeNH(t.root, t.inds, features, labels, treatment), indsbuild, setdiff(collect(1:length(labels)), indsbuild))
     end
 end
 
 """
 Build a causal forest.
 
-- if `centering=True` Y and W are centered else they stay unchanged
 - if `bootstrap=True` we sample for each tree via bootstrap else we use subsampling
 - if `honest=True` we use 2 samples one too build splits and the other one to fill leaves
     otherwise we use the whole sample for the two steps
 - if `const_mtry=True` we use a constant mtry otherwise we use a random mtry following
     `min(max(Poisson(m_pois),1),number_of_features)`
+- if `m_pois=-1` we set mtry to `sqrt(number_of_features)` else mtry is m_pois
+- if `optimisatio=true` we use cross validation to tune regression random forest of gamma
 """
 function build_forest(
-    centering          :: Bool,
     bootstrap          :: Bool,
     honest             :: Bool,
     labels             :: AbstractVector{T},
@@ -132,13 +148,14 @@ function build_forest(
     features           :: AbstractMatrix{S},
     const_mtry         :: Bool,
     m_pois              = -1,
-    n_trees             = 10,
+    n_trees            ::Int = 10,
+    n_trees_centering  ::Int = 100,
+    optimisation       ::Bool = true;
     partial_sampling    = 0.7,
     honest_proportion   = 0.5,
     max_depth           = -1,
-    min_samples_leaf    = 5,
-    min_samples_split   = 10,
-    n_trees_centering   = 100;
+    min_samples_leaf   ::Int = 5,
+    min_samples_split  ::Int = 10,
     rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
 
     if n_trees < 1
@@ -146,6 +163,9 @@ function build_forest(
     end
     if !(0.0 < partial_sampling <= 1.0)&&!bootstrap
         throw("partial_sampling must be in the range (0,1]")
+    end
+    if !(0.0 < honest_proportion <= 1.0)&&honest
+        throw("honest_proportion must be in the range (0,1]")
     end
 
     n_tot_samples = length(labels)
@@ -162,21 +182,41 @@ function build_forest(
         forest = Vector{TreeCausalNH{S}}(undef, n_trees)
     end
 
-    if centering
-        model_Y = build_forest_oob(labels, features, -1, n_trees_centering)
-        model_T = build_forest_oob(treatment, features, -1, n_trees_centering)
-        Y_center = labels - apply_forest_oob(model_Y)
-        T_center = treatment - apply_forest_oob(model_T)
-        Y_vec = Y_center
-        T_vec = T_center
+    if optimisation #TODO verifier crossvalidation tuning
+        cv = MLBase.Kfold(length(labels[treatment.==0]), 5)
+
+        p = size(features, 2)
+        min_leaf = [5, 10, 25]
+        min_split = [2, 5, 10]
+        mtry = [round(Int, sqrt(p)), round(Int, p/3), p]
+        G = Iterators.product(min_leaf, min_split, mtry)
+        sc = []
+        p = []
+
+        for g in G
+            perf = 0
+            for i in cv
+                train_inds = i
+                test_inds = setdiff(1:length(labels[treatment.==0]), train_inds)
+                lab_t= labels[treatment.==0]
+                feat_t = features[treatment.==0, :]
+
+                model = DecisionTree.build_forest(lab_t[train_inds], feat_t[train_inds,:], g[3], n_trees_centering, 0.7, -1, g[1], g[2])
+                perf += StatsBase.rmsd(lab_t[test_inds], DecisionTree.apply_forest(model, feat_t[test_inds,:]))
+            end
+            perf /= 5
+            push!(sc, perf)
+            push!(p, (g[1], g[2], g[3]))
+        end
+        ind_opt = argmin(sc)
+        model_Y = DecisionTree.build_forest(labels[treatment.==0], features[treatment.==0,:], p[ind_opt][3], n_trees_centering, 0.7, -1, p[ind_opt][1], p[ind_opt][2])
     else
-        model_Y = nothing
-        model_T = nothing
-        Y_center = nothing
-        T_center = nothing
-        Y_vec = labels
-        T_vec = treatment
+        model_Y = DecisionTree.build_forest(labels[treatment.==0], features[treatment.==0,:], -1, n_trees_centering)
     end
+    Y_center = labels - DecisionTree.apply_forest(model_Y, features)
+    Y_vec = Y_center
+    T_vec = treatment
+
 
     if rng isa Random.AbstractRNG
         if bootstrap
@@ -282,7 +322,7 @@ function build_forest(
         throw("rng must of be type Integer or Random.AbstractRNG")
     end
 
-    return EnsembleCausal{S}(forest, centering, bootstrap, honest, features, labels, treatment, model_Y, model_T, Y_center, T_center)
+    return EnsembleCausal{S}(forest, bootstrap, honest, features, labels, treatment, model_Y, nothing, Y_center, nothing)
 end
 
 apply_treeH(leaf :: LeafCausalH, x :: AbstractVector{S}) where {S} = leaf.inds_pred
@@ -325,39 +365,41 @@ function apply_forest(
     x      :: AbstractVector{S}
     ) where {S}
 
-    centering = forest.centering
     n_samples = length(forest.Y)
-    alpha = zeros(n_samples)
+    alpha_pos = zeros(n_samples)
+    alpha_neg = zeros(n_samples)
     n_trees = length(forest)
     for b in 1:n_trees
         N = neighbours(forest, b, x)
-        l = length(N)
+        l_pos = 0
+        l_neg = 0
         for e in N
-            alpha[e] += 1/l
+            if forest.T[e] == 1
+                l_pos += 1
+            else
+                l_neg += 1
+            end
+        end
+        for e in N
+            if forest.T[e] == 1
+                alpha_pos[e] += 1/l_pos
+            else
+                alpha_neg[e] += 1/l_neg
+            end
         end
     end
-    alpha = alpha/n_trees
-    T_alpha = 0
-    Y_alpha = 0
-    if centering
-        Y_vec =  forest.Y_center
-        T_vec =  forest.T_center
-    else
-        Y_vec = forest.Y
-        T_vec = forest.T
-    end
+    alpha_pos = alpha_pos/n_trees
+    alpha_neg = alpha_neg/n_trees
+    pos = 0
+    neg = 0
     for i in 1:n_samples
-        T_alpha += alpha[i]*T_vec[i]
-        Y_alpha += alpha[i]*Y_vec[i]
+        if forest.T[i] == 1
+            pos += forest.Y_center[i]*alpha_pos[i]
+        else
+            neg += forest.Y_center[i]*alpha_neg[i]
+        end
     end
-    num = 0
-    denom = 0
-    for i in 1:n_samples
-        diffT = T_vec[i]-T_alpha
-        num += alpha[i]*diffT*(Y_vec[i]-Y_alpha)
-        denom += alpha[i]*diffT^2
-    end
-    return num/denom
+    return pos-neg
 end
 
 """

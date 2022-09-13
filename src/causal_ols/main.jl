@@ -1,4 +1,4 @@
-function _convertNH(node::treecausation_1.NodeMeta{S}, indX::Vector{Int}) where {S}
+function _convertNH(node::treecausation_ols.NodeMeta{S}, indX::Vector{Int}) where {S}
     if node.is_leaf
         return LeafCausalNH(indX[node.region], 0)
     else
@@ -8,7 +8,7 @@ function _convertNH(node::treecausation_1.NodeMeta{S}, indX::Vector{Int}) where 
     end
 end
 
-function _convertH(node::treecausation_1.NodeMeta{S}, indX::Vector{Int}) where {S}
+function _convertH(node::treecausation_ols.NodeMeta{S}, indX::Vector{Int}) where {S}
     if node.is_leaf
         return LeafCausalH(indX[node.region], Vector{Int}(), 0)
     else
@@ -19,7 +19,7 @@ function _convertH(node::treecausation_1.NodeMeta{S}, indX::Vector{Int}) where {
 end
 
 function fill_treeH(
-        node     :: treecausation_1.NodeMeta{S},
+        node     :: treecausation_ols.NodeMeta{S},
         indspred :: AbstractVector{Int},
         indX     :: Vector{Int},
         X        :: AbstractMatrix{S},
@@ -37,7 +37,7 @@ function fill_treeH(
 end
 
 function fill_treeNH(
-        node     :: treecausation_1.NodeMeta{S},
+        node     :: treecausation_ols.NodeMeta{S},
         indX     :: Vector{Int},
         X        :: AbstractMatrix{S},
         Y        :: Vector{Float64},
@@ -48,7 +48,7 @@ function fill_treeNH(
 end
 
 
-function build_tree_1(
+function build_tree_ols(
         honest             :: Bool,
         indsbuild          :: AbstractVector{Int},
         indspred           :: Union{Nothing, AbstractVector{Int}},
@@ -78,7 +78,7 @@ function build_tree_1(
 
     rng = mk_rng(rng)::Random.AbstractRNG
 
-    t = treecausation_1.fit(
+    t = treecausation_ols.fit(
         X                   = features,
         Y                   = labels,
         W                   = treatment,
@@ -107,8 +107,7 @@ Build a causal forest.
 - if `const_mtry=True` we use a constant mtry otherwise we use a random mtry following
     `min(max(Poisson(m_pois),1),number_of_features)`
 """
-function build_forest_1(
-    centering          :: Bool,
+function build_forest_ols(
     bootstrap          :: Bool,
     honest             :: Bool,
     labels             :: AbstractVector{T},
@@ -116,13 +115,13 @@ function build_forest_1(
     features           :: AbstractMatrix{S},
     const_mtry         :: Bool,
     m_pois              = -1,
-    n_trees             = 10,
+    n_trees            ::Int = 10,
+    n_trees_centering  ::Int = 100;
     partial_sampling    = 0.7,
     honest_proportion   = 0.5,
     max_depth           = -1,
-    min_samples_leaf    = 5,
-    min_samples_split   = 10,
-    n_trees_centering   = 100;
+    min_samples_leaf   ::Int = 5,
+    min_samples_split  ::Int = 10,
     rng                 = Random.GLOBAL_RNG) where {S, T <: Float64}
 
     if n_trees < 1
@@ -131,8 +130,8 @@ function build_forest_1(
     if !(0.0 < partial_sampling <= 1.0)&&!bootstrap
         throw("partial_sampling must be in the range (0,1]")
     end
-    if centering
-        throw("no centering for this splitting criterion")
+    if !(0.0 < honest_proportion <= 1.0)&&honest
+        throw("honest_proportion must be in the range (0,1]")
     end
 
     n_tot_samples = length(labels)
@@ -149,21 +148,14 @@ function build_forest_1(
         forest = Vector{TreeCausalNH{S}}(undef, n_trees)
     end
 
-    if centering
-        model_Y = build_forest_oob(labels, features, -1, n_trees_centering)
-        model_T = build_forest_oob(treatment, features, -1, n_trees_centering)
-        Y_center = labels - apply_forest_oob(model_Y)
-        T_center = treatment - apply_forest_oob(model_T)
-        Y_vec = Y_center
-        T_vec = T_center
-    else
-        model_Y = nothing
-        model_T = nothing
-        Y_center = nothing
-        T_center = nothing
-        Y_vec = labels
-        T_vec = treatment
-    end
+    model_Y = nothing
+    z = hcat(ones(length(labels[treatment.==0,:]),1), features[treatment.==0,:])
+    coeff = (z'*z)\z'*labels[treatment.==0,:]
+    z1 = hcat(ones(length(labels),1), features)
+    Y_center = vec(labels - z1*coeff)
+    Y_vec = Y_center
+    T_vec = treatment
+
 
     if rng isa Random.AbstractRNG
         if bootstrap
@@ -177,7 +169,7 @@ function build_forest_1(
                     indsbuild = rand(rng, 1:n_tot_samples, n_samples)
                     indspred = nothing
                 end
-                forest[i] = build_tree_1(
+                forest[i] = build_tree_ols(
                     honest,
                     indsbuild,
                     indspred,
@@ -200,7 +192,7 @@ function build_forest_1(
                     indsbuild = StatsBase.sample(rng, 1:n_tot_samples, n_samples; replace=false)
                     indspred = nothing
                 end
-                forest[i] = build_tree_1(
+                forest[i] = build_tree_ols(
                     honest,
                     indsbuild,
                     indspred,
@@ -228,7 +220,7 @@ function build_forest_1(
                     indsbuild = rand(1:n_tot_samples, n_samples)
                     indspred = nothing
                 end
-                forest[i] = build_tree_1(
+                forest[i] = build_tree_ols(
                     honest,
                     indsbuild,
                     indspred,
@@ -251,7 +243,7 @@ function build_forest_1(
                     indsbuild = StatsBase.sample(1:n_tot_samples, n_samples; replace=false)
                     indspred = nothing
                 end
-                forest[i] = build_tree_1(
+                forest[i] = build_tree_ols(
                     honest,
                     indsbuild,
                     indspred,
@@ -269,10 +261,10 @@ function build_forest_1(
         throw("rng must of be type Integer or Random.AbstractRNG")
     end
 
-    return EnsembleCausal{S}(forest, centering, bootstrap, honest, features, labels, treatment, model_Y, model_T, Y_center, T_center)
+    return EnsembleCausal{S}(forest, bootstrap, honest, features, labels, treatment, model_Y, nothing, Y_center, nothing)
 end
 
-function apply_forest_1(
+function apply_forest_ols(
     forest :: EnsembleCausal{S},
     x      :: AbstractVector{S}
     ) where {S}
@@ -306,9 +298,9 @@ function apply_forest_1(
     neg = 0
     for i in 1:n_samples
         if forest.T[i] == 1
-            pos += forest.Y[i]*alpha_pos[i]
+            pos += forest.Y_center[i]*alpha_pos[i]
         else
-            neg += forest.Y[i]*alpha_neg[i]
+            neg += forest.Y_center[i]*alpha_neg[i]
         end
     end
     return pos-neg
@@ -317,7 +309,7 @@ end
 """
 Get the causal effect for each row in x given a causal forest
 """
-function apply_forest_1(
+function apply_forest_ols(
     forest :: EnsembleCausal{S},
     x      :: AbstractMatrix{S}
     ) where {S}
@@ -325,7 +317,7 @@ function apply_forest_1(
     N = size(x, 1)
     predictions = Array{Float64}(undef, N)
     for i in 1:N
-        predictions[i] = apply_forest_1(forest, x[i, :])
+        predictions[i] = apply_forest_ols(forest, x[i, :])
     end
     return predictions
 end

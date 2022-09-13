@@ -86,6 +86,8 @@ module treecausation
         if (min_samples_leaf * 2 >  n_samples
          || min_samples_split    >  n_samples
          || max_depth            <= node.depth
+         #TODO|| min_samples_split    >  t_w_sum
+         #TODO|| min_samples_split    >  n_samples - t_w_sum
          )
             node.is_leaf = true
             return
@@ -97,6 +99,7 @@ module treecausation
         best_feature = -1
         threshold_lo = X[1]
         threshold_hi = X[1]
+        #min_child_size = (t_w_ssq - t_w_sum*t_w_sum/n_samples)*0.05
 
         # true if every feature is constant
         unsplittable = true
@@ -141,9 +144,9 @@ module treecausation
                     ? searchsortedlast(Xf, curr_f, lo, n_samples, Base.Order.Forward)
                     : lo)
 
-                if lo-1 >= min_samples_leaf && n_samples - (lo-1) >= min_samples_leaf
+                if l_w_sum >= min_samples_leaf && lo-1-l_w_sum >= min_samples_leaf && r_w_sum >= min_samples_leaf && n_samples - (lo-1)-r_w_sum >= min_samples_leaf
                     unsplittable = false
-                    difference = (l_w_ssq/nl - (l_w_sum/nl)^2)/(l_wy_sum/nl - (l_w_sum/nl))-(r_w_ssq/nr - (r_w_sum/nr)^2)/(r_wy_sum/nr - (r_w_sum/nr))
+                    difference = l_wy_sum/l_w_sum + (r_y_sum-r_wy_sum)/(nr-r_w_sum) - (l_y_sum-l_wy_sum)/(nl-l_w_sum) - r_wy_sum/r_w_sum
                     purity = (nl*nr)/(n_samples*n_samples)*difference*difference
                     if purity > best_purity && !isapprox(purity, best_purity)
                         # will take average at the end, if possible

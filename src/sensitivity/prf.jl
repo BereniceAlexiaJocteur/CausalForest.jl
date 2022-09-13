@@ -128,17 +128,11 @@ function apply_forest_oob(
     forest :: EnsembleCausal{S}
     ) where {S}
 
-    centering = forest.centering
     n_samples = length(forest.Y)
     n_trees = length(forest)
     predictions = Array{Float64}(undef, n_samples)
-    if centering
-        Y_vec =  forest.Y_center
-        T_vec =  forest.T_center
-    else
-        Y_vec = forest.Y
-        T_vec = forest.T
-    end
+    Y_vec = forest.Y
+    T_vec = forest.T
 
     for j in 1:n_samples
 
@@ -191,7 +185,7 @@ function prf_causal_effect( # causal effect on oob
         trees[i] = build_projected_tree(forest.trees[i], set_u, forest.X)
     end
 
-    prf = EnsembleCausal{S}(trees, forest.centering, forest.bootstrap, forest.honest,
+    prf = EnsembleCausal{S}(trees, forest.bootstrap, forest.honest,
         forest.X, forest.Y, forest.T, forest.model_Y, forest.model_T, forest.Y_center,
         forest.T_center)
 
