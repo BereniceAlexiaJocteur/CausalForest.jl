@@ -185,26 +185,18 @@ function build_forest(
     if optimisation #TODO verifier crossvalidation tuning
         cv = MLBase.Kfold(length(labels[treatment.==0]), 5)
 
-        p = size(features, 2)
-        min_leaf = [5, 10, 25]
-        min_split = [2, 5, 10]
-        mtry = [round(Int, sqrt(p)), round(Int, p/3), p]
+        np = size(features, 2)
+        min_split = [5, 10, 25]
+        min_leaf = [2, 5, 10]
+        mtry = [round(Int, sqrt(np)), round(Int, np/3), np]
         G = Iterators.product(min_leaf, min_split, mtry)
         sc = []
         p = []
 
         for g in G
-            perf = 0
-            for i in cv
-                train_inds = i
-                test_inds = setdiff(1:length(labels[treatment.==0]), train_inds)
-                lab_t= labels[treatment.==0]
-                feat_t = features[treatment.==0, :]
+            model = build_forest_oob(labels[treatment.==0], features[treatment.==0, :], g[3], n_trees_centering, 0.7, -1, g[1], g[2])
+            perf  = StatsBase.rmsd(labels[treatment.==0], apply_forest_oob(model))
 
-                model = DecisionTree.build_forest(lab_t[train_inds], feat_t[train_inds,:], g[3], n_trees_centering, 0.7, -1, g[1], g[2])
-                perf += StatsBase.rmsd(lab_t[test_inds], DecisionTree.apply_forest(model, feat_t[test_inds,:]))
-            end
-            perf /= 5
             push!(sc, perf)
             push!(p, (g[1], g[2], g[3]))
         end
