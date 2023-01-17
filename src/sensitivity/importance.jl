@@ -1,3 +1,6 @@
+"""
+Get frequency of splitting on each covariate by depth in a causal forest
+"""
 function get_freq_by_depth(
     tree      :: Union{TreeCausalH{S}, TreeCausalNH{S}},
     depth_max :: Int,
@@ -28,6 +31,9 @@ function get_freq_by_depth(
 
 end
 
+"""
+Get frequency based importance for each covariate in causal forest
+"""
 function importance(
     forest    :: EnsembleCausal{S},
     depth_max = 4,

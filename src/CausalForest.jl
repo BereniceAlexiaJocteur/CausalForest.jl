@@ -16,9 +16,7 @@ import StatsBase
 import LinearAlgebra
 
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
-    shaff, knn_sensi, importance, knn_causal_sensi,
-    build_forest, apply_forest, build_forest_ols, apply_forest_ols,
-    get_occurence_frequencies, sample_U, apply_forest_oob # pour test
+    importance, build_forest, apply_forest, build_forest_ols, apply_forest_ols,
 
 #####Includes#####
 
