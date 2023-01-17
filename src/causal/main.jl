@@ -182,8 +182,15 @@ function build_forest(
         forest = Vector{TreeCausalNH{S}}(undef, n_trees)
     end
 
+    if sum(treatment) > 0.55 * n_tot_samples
+        model_T = -1
+        T_center = 1 .- treatment
+    else
+        model_T = 1
+        T_center = treatment
+    end
+
     if optimisation #TODO verifier crossvalidation tuning
-        cv = MLBase.Kfold(length(labels[treatment.==0]), 5)
 
         np = size(features, 2)
         min_split = [5, 10, 25]
@@ -194,20 +201,20 @@ function build_forest(
         p = []
 
         for g in G
-            model = build_forest_oob(labels[treatment.==0], features[treatment.==0, :], g[3], n_trees_centering, 0.7, -1, g[1], g[2])
-            perf  = StatsBase.rmsd(labels[treatment.==0], apply_forest_oob(model))
+            model = build_forest_oob(labels[T_center.==0], features[T_center.==0, :], g[3], n_trees_centering, 0.7, -1, g[1], g[2])
+            perf  = StatsBase.rmsd(labels[T_center.==0], apply_forest_oob(model))
 
             push!(sc, perf)
             push!(p, (g[1], g[2], g[3]))
         end
         ind_opt = argmin(sc)
-        model_Y = DecisionTree.build_forest(labels[treatment.==0], features[treatment.==0,:], p[ind_opt][3], n_trees_centering, 0.7, -1, p[ind_opt][1], p[ind_opt][2])
+        model_Y = DecisionTree.build_forest(labels[T_center.==0], features[T_center.==0,:], p[ind_opt][3], n_trees_centering, 0.7, -1, p[ind_opt][1], p[ind_opt][2])
     else
-        model_Y = DecisionTree.build_forest(labels[treatment.==0], features[treatment.==0,:], -1, n_trees_centering)
+        model_Y = DecisionTree.build_forest(labels[T_center.==0], features[T_center.==0,:], -1, n_trees_centering)
     end
     Y_center = labels - DecisionTree.apply_forest(model_Y, features)
     Y_vec = Y_center
-    T_vec = treatment
+    T_vec = T_center
 
 
     if rng isa Random.AbstractRNG
@@ -314,7 +321,7 @@ function build_forest(
         throw("rng must of be type Integer or Random.AbstractRNG")
     end
 
-    return EnsembleCausal{S}(forest, bootstrap, honest, features, labels, treatment, model_Y, nothing, Y_center, nothing)
+    return EnsembleCausal{S}(forest, bootstrap, honest, features, labels, treatment, model_Y, model_T, Y_center, T_center)
 end
 
 apply_treeH(leaf :: LeafCausalH, x :: AbstractVector{S}) where {S} = leaf.inds_pred

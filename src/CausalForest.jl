@@ -82,7 +82,7 @@ struct EnsembleCausal{S}
     Y         :: AbstractVector{Float64}
     T         :: AbstractVector{Int}
     model_Y   :: Union{Nothing, EnsembleOOB{S, Float64}, Ensemble{S, Float64}}
-    model_T   :: Union{Nothing, EnsembleOOB{S, Int}}
+    model_T   :: Union{Nothing, EnsembleOOB{S, Int}, Int}
     Y_center  :: Union{Nothing, AbstractVector{Float64}}
     T_center  :: Union{Nothing, AbstractVector{Int}}
 end

@@ -1,9 +1,12 @@
 setwd("/Users/jocteur/.julia/dev/CausalForest/notebooks")
 
 #data = read.csv("sinus_causal_3.csv", dec=".")
-data = read.csv("sinus_causal_4.csv", dec=".")
+#data = read.csv("sinus_causal_4.csv", dec=".")
 #data = read.csv("sinus_causal_5.csv", dec=".")
 #data = read.csv("sinus_causal_6.csv", dec=".")
+#data = read.csv("sinus_causal_7.csv", dec=".")
+#data = read.csv("sinus_causal_8.csv", dec=".")
+data = read.csv("sinus_causal_9.csv", dec=".")
 
 
 library("grf")
@@ -19,7 +22,7 @@ for (i in 1:100){
   set.seed(i)
   Xtest = matrix(runif(10000,0,10),nrow=1000)
   pred = predict(cf, Xtest)$predictions
-  true_effect = 25*sin(Xtest[, 1])
+  true_effect = sin(Xtest[, 1])
   errors_1[i] = rmse(true_effect, pred)
 }
 mean(errors_1)
@@ -27,13 +30,16 @@ var(errors_1)
 
 freq = split_frequencies(cf,20)
 sum(freq[1:3,1])/sum(freq[1:3,])
+#sum(freq[1:3,2])/sum(freq[1:3,])
 sum(freq[1:5,1])/sum(freq[1:5,])
+#sum(freq[1:5,2])/sum(freq[1:5,])
 sum(freq[1:10,1])/sum(freq[1:10,])
+#sum(freq[1:10,2])/sum(freq[1:10,])
 
 set.seed(1)
 Xtest = matrix(runif(10000,0,10),nrow=1000)
 pred = predict(cf, Xtest)$predictions
-true_effect = 25*sin(Xtest[, 1])
+true_effect = sin(Xtest[, 1])
 idx <- order(Xtest[, 1])
 plot(Xtest[idx, 1], pred[idx], type='l', col='red')
 lines(Xtest[idx, 1], true_effect[idx], col="blue")
