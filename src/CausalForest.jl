@@ -6,6 +6,7 @@ import Base: length, show, convert, promote_rule, zero
 using DecisionTree
 using Random
 using Statistics
+using MLBase
 import StatsBase
 
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
