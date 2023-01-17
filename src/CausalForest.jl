@@ -3,6 +3,7 @@ __precompile__()
 module CausalForest
 
 import Base: length, show, convert, promote_rule, zero
+using DelimitedFiles
 using DecisionTree
 using Random
 using Statistics
