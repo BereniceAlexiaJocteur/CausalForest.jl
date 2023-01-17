@@ -100,11 +100,6 @@ include("causal/tree.jl")
 include("causal/main.jl")
 include("causal_ols/tree.jl")
 include("causal_ols/main.jl")
-include("sensitivity/sampling.jl")
-include("sensitivity/prf.jl")
-include("sensitivity/shaff.jl")
-include("sensitivity/knn.jl")
 include("sensitivity/importance.jl")
-include("sensitivity/knnforest.jl")
 
 end #module
