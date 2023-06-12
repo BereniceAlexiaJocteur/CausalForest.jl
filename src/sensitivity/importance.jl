@@ -14,12 +14,14 @@ function get_freq_by_depth(
 
     while curr_depth <= depth_max
         for i in curr_lvl
-            res[curr_depth, i.featid] += 1
-            if !is_leaf(i.left)
-                push!(next_lvl, i.left)
-            end
-            if !is_leaf(i.right)
-                push!(next_lvl, i.right)
+            if !is_leaf(i)
+                res[curr_depth, i.featid] += 1
+                if !is_leaf(i.left)
+                    push!(next_lvl, i.left)
+                end
+                if !is_leaf(i.right)
+                    push!(next_lvl, i.right)
+                end
             end
         end
         curr_depth += 1

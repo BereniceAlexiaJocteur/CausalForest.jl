@@ -212,7 +212,8 @@ function build_forest(
     else
         model_Y = DecisionTree.build_forest(labels[T_center.==0], features[T_center.==0,:], -1, n_trees_centering)
     end
-    Y_center = labels - DecisionTree.apply_forest(model_Y, features)
+    #Y_center = labels - DecisionTree.apply_forest(model_Y, features) TODO
+    Y_center = labels
     Y_vec = Y_center
     T_vec = T_center
 
