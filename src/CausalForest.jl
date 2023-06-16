@@ -12,7 +12,8 @@ import StatsBase
 
 export TreeOOB, EnsembleOOB, apply_tree_oob, build_forest_oob, apply_forest_oob, load_data,
     importance, build_forest, apply_forest, build_forest_ols, apply_forest_ols, build_tree,
-    TreeCausalH, TreeCausalNH
+    TreeCausalH, TreeCausalNH, LeafCausalH, LeafCausalNH, NodeCausalH, NodeCausalNH,
+    LeafOrNodeCausalH, LeafOrNodeCausalNH
 
 #####Includes#####
 
