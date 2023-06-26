@@ -30,12 +30,12 @@ include("regression/main.jl")
 mutable struct LeafCausalH # honest
     inds_build   :: Vector{Int} # indices in the leaf during construction
     inds_pred    :: Vector{Int} # indices to predict these are the same if no honesty
-    label        :: Union{Nothing, Float64} # mean causal effect in leaf for Breiman like approach
+    label        :: Union{Nothing, Float64, Vector{Float64}} # mean causal effect in leaf for Breiman like approach
 end
 
 mutable struct LeafCausalNH # nothonest
     inds_build   :: Vector{Int} # indices in the leaf
-    label        :: Union{Nothing, Float64} # mean causal effect in leaf
+    label        :: Union{Nothing, Float64, Vector{Float64}} # mean causal effect in leaf
 end
 
 struct NodeCausalH{S}
